@@ -1,6 +1,6 @@
 from .models import Cart, Profile
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect,HttpResponse
@@ -141,40 +141,53 @@ def activate_email(request, email_token):
        
         return HttpResponse("Link xac thuc khong hop le")
 
-@login_required(login_url='login')
+@login_required(login_url='/accounts/login/')
 def add_to_cart(request, uid):
+    # Lấy user (Giả sử bạn dùng Profile)
+    user_profile = request.user.profile 
+    
+    # Lấy variant UID từ URL
+    variant_uid = request.GET.get('variant')
+    # Lấy quantity từ URL
+    quantity = request.GET.get('quantity', 1) # Mặc định là 1
+    
+    if not variant_uid:
+        # Xử lý lỗi nếu không có variant
+        return redirect(request.META.get('HTTP_REFERER', 'home'))
+
     try:
-        product = Product.objects.get(uid=uid)
-        user = request.user 
-        cart, _ = Cart.objects.get_or_create(user=user, is_paid=False)
+        # Lấy đúng đối tượng variant
+        variant_obj = Variant.objects.get(uid=variant_uid)
+        # Lấy (hoặc tạo) giỏ hàng
+        cart, _ = Cart.objects.get_or_create(user=user_profile.user, is_paid=False)
         
-        size = None
-        variant = request.GET.get('variant')
-        if variant:
-            size = SizeVariant.objects.get(size_name=variant)
-
-       
-        cart_item, created = CartItems.objects.get_or_create(
+        # Lấy (hoặc tạo) cart item
+        cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
-            product=product,
-            size_variant=size
+            variant=variant_obj 
         )
-        
+
         if created:
-            cart_item.quantity = 1
+            # Nếu vừa tạo mới, set số lượng
+            cart_item.quantity = int(quantity)
         else:
-            
-            cart_item.quantity += 1
-            
+            # Nếu đã có, CỘNG DỒN số lượng
+            cart_item.quantity += int(quantity)
+        
+        # Đảm bảo số lượng không vượt quá tồn kho
+        if cart_item.quantity > variant_obj.stock:
+            cart_item.quantity = variant_obj.stock
+            # (Bạn có thể thêm message báo lỗi ở đây)
+
         cart_item.save()
-        
-
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
+    
+    except Variant.DoesNotExist:
+        # Xử lý lỗi
+        pass
     except Exception as e:
-        print(e)
+        print(e) # In lỗi ra console
         
-        return redirect('/')
+    return redirect(request.META.get('HTTP_REFERGTER', 'home'))
 
 
 

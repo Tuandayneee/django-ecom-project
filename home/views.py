@@ -1,15 +1,18 @@
 from django.shortcuts import render, redirect
 from products.models import Product
-from django.contrib.auth import logout
 
+from django.db.models import Min
 
 
 
 
 def index(request):
-    # Do not auto-logout users on visiting the index.
-    # Keep original behavior: render homepage for both anonymous and authenticated users.
+    
+    products_list = Product.objects.annotate(
+        min_price=Min('variants__price')
+    ).all()
+    
     context = {
-        'products': Product.objects.all()
+        'products': products_list
     }
     return render(request, 'home/index.html', context)

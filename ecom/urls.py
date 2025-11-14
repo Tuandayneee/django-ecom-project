@@ -20,11 +20,11 @@ from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-from ecom.views import home_view
+from home.views import index
 
 
 urlpatterns = [
-    path('', home_view, name='home'),
+    path('', index, name='home'),
     path('product/', include('products.urls')),
     path('admin/' , admin.site.urls ),
     path('accounts/',include('accounts.urls')),

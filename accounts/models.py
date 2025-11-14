@@ -5,7 +5,8 @@ from base.models import BaseModel
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from base.emails import send_account_activation_email
-from products.models import Coupon,Product,ColorVariant,SizeVariant
+from products.models import Coupon
+from products.models import Coupon, Variant
 class Profile(BaseModel):
     user = models.OneToOneField(User,on_delete=models.CASCADE,related_name="profile")
     is_email_verified = models.BooleanField(default=False)
@@ -15,36 +16,39 @@ class Profile(BaseModel):
         return CartItems.objects.filter(cart__is_paid=False,cart__user=self.user).count()
 
 class Cart(BaseModel):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="carts")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts")
     coupons = models.ManyToManyField(Coupon, blank=True)
     is_paid = models.BooleanField(default=False)
+    
     def get_cart_total(self):
         total = 0
         cart_items = self.cart_items.all()
         for item in cart_items:
-            total += item.get_total()
+            # Logic tính tổng mới (đơn giản hơn)
+            total += item.get_item_total() 
         return total
-        
-
-
-
 
 class CartItems(BaseModel):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="cart_items")
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
-    color_variant = models.ForeignKey(ColorVariant, on_delete=models.SET_NULL, null=True, blank=True)
-    size_variant = models.ForeignKey(SizeVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # SỬA LỖI KIẾN TRÚC Ở ĐÂY:
+    # Chỉ liên kết đến 'Variant', vì nó đã chứa tất cả thông tin
+    variant = models.ForeignKey(Variant, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Thêm trường 'quantity' (bạn đã có, rất tốt)
     quantity = models.IntegerField(default=1)
 
-    def get_total(self):
-        item_price = self.product.price
-        if self.color_variant and self.color_variant.price:
-            item_price += self.color_variant.price
-        if self.size_variant and self.size_variant.price:
-            item_price += self.size_variant.price
-        return item_price * self.quantity
+    # Đổi tên hàm
+    def get_item_total(self):
+        # Logic tính tổng mới (dựa trên Variant)
+        if self.variant:
+            return self.variant.price * self.quantity
+        return 0 # Trả về 0 nếu variant bị xóa
+
     def __str__(self):
-        return f"{self.product.product_name} ({self.size_variant.size_name if self.size_variant else ''}) - {self.quantity}"
+        if self.variant:
+            return f"{self.variant.product.product_name} ({self.variant.variant_name}) - {self.quantity}"
+        return f"Sản phẩm đã xóa - {self.quantity}"
         
 
 @receiver(post_save,sender=User)
