@@ -1,0 +1,31 @@
+{% extends "base/base.html"%} {% load static %} {% block start %}
+<div class="container mt-4 mb-5">
+  <div class="row row-cols-1 row-cols-md-4 g-4">
+    {% for product in products %}
+    <div class="col">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="product-img-wrapper">
+          <img
+            src="{{ product.product_images.first.image.url }}"
+            class="card-img-top"
+            alt="{{product.product_name}}"
+          />
+        </div>
+
+        <div class="card-body">
+          <h5 class="card-title">
+            <a
+              href="{% url 'get_product' product.slug %}"
+              class="text-decoration-none text-dark stretched-link"
+            >
+              {{product.product_name}}
+            </a>
+          </h5>
+          <p class="card-text fw-bold">${{product.price}}</p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

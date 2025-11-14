@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %} {% load static %} {% block title %}Order
+Success{% endblock %} {% block content %}
+<section class="section-content padding-y">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-body text-center">
+            <h3>Cảm ơn! Đơn hàng của bạn đã được gửi.</h3>
+            <p>Mã đơn: <strong>{{ order.uid }}</strong></p>
+            <p>Tổng: <strong>${{ order.total }}</strong></p>
+            <a href="{% url 'home' %}" class="btn btn-primary">Về trang chủ</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

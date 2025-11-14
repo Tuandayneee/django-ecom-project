@@ -1,0 +1,17 @@
+# Môi trường ảo
+venv/
+env/
+.venv/
+
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+/media/
+/staticfiles/
+
+# File hệ điều hành
+.DS_Store
+Thumbs.db

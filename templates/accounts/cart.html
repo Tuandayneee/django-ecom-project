@@ -1,0 +1,292 @@
+{% extends 'base/base.html' %} {% load static %} {% block title %} Shopping Cart
+{% endblock %} {% block start %}
+<section class="section-content padding-y">
+  <div class="container">
+    <div class="row">
+      <main class="col-md-9">
+        {% if not cart_items %}
+        <div class="alert alert-info" role="alert">
+          Giỏ hàng của bạn trống.
+          <a href="{% url 'home' %}" class="alert-link">Tiếp tục mua!</a>
+        </div>
+
+        {% else %}
+        <div class="card">
+          <table class="table table-borderless table-shopping-cart">
+            <thead class="text-muted">
+              <tr class="small text-uppercase">
+                <th scope="col" class="text-center">Sản phẩm</th>
+                <th scope="col" class="text-center" width="120">Số lượng</th>
+                <th scope="col" class="text-center">Giá</th>
+                <th scope="col" class="text-center">Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for item in cart_items %}
+              <tr>
+                <td>
+                  <figure class="media">
+                    <div class="img-wrap">
+                      <img
+                        src="{{ item.product.product_images.first.image.url }}"
+                        class="img-thumbnail img-sm"
+                        alt="{{ item.product.product_name }}"
+                      />
+                    </div>
+                    <figcaption class="media-body">
+                      <h6 class="title text-truncate">
+                        {{ item.product.product_name }}
+                      </h6>
+                      <dl class="param param-inline small">
+                        <dt>Size:</dt>
+                        <dd>{{ item.size_variant.size_name }}</dd>
+                      </dl>
+                    </figcaption>
+                  </figure>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    class="form-control text-center cart-quantity-input"
+                    value="{{ item.quantity }}"
+                    min="0"
+                    data-uid="{{ item.uid }}"
+                  />
+                </td>
+                <td>
+                  <div class="price-wrap">
+                    <var class="price" id="subtotal-{{ item.uid }}"
+                      >${{ item.get_total }}</var
+                    >
+                    <small class="text-muted">
+                      giá gốc: ${{ item.product.price }}
+                    </small>
+                  </div>
+                </td>
+                <td class="text-right text-nowrap">
+                  <a href="" class="btn btn-light mr-2">Lưu lựa chọn</a>
+                  <a
+                    href="#"
+                    class="btn btn-danger btn-remove"
+                    data-uid="{{ item.uid }}"
+                  >
+                    Xóa sản phẩm</a
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div class="card-body border-top">
+            <a href="{% url 'home' %}" class="btn btn-light">
+              <i class="fa fa-chevron-left"></i> Tiếp tục mua
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </main>
+
+      <aside class="col-md-3">
+        <div class="card mb-3">
+          <div class="card-body">
+            {% if applied_coupons %}
+            <h6 class="mb-2">Mã đã áp dụng:</h6>
+            <div class="applied-coupons-list mb-3">
+              {% for coupon in applied_coupons %}
+              <span class="applied-coupon-tag">
+                {{ coupon.coupon_code }}
+                <a
+                  href="{% url 'remove_coupon' coupon.id %}"
+                  class="remove-tag"
+                  title="Xóa mã"
+                  >&times;</a
+                >
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <form action="{% url 'apply_coupon' %}" method="POST">
+              {% include "base/alert.html" %} {% csrf_token %}
+              <div class="form-group">
+                <label>Bạn có mã giảm giá không?</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="coupon_code"
+                    placeholder="Mã giảm giá..."
+                  />
+                  <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit">
+                      Áp dụng
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <dl class="dlist-align">
+              <dt>Tạm tính:</dt>
+              <dd class="text-right" id="cart-subtotal-display">
+                ${{ subtotal|floatformat:2 }}
+              </dd>
+            </dl>
+
+            {% if discount > 0 %}
+            <dl class="dlist-align" id="discount-row">
+              <dt>Tổng giảm giá:</dt>
+              <dd class="text-right text-danger" id="cart-discount-display">
+                - ${{ discount|floatformat:2 }}
+              </dd>
+            </dl>
+            {% endif %}
+
+            <div id="discount-placeholder">
+              {% if not discount > 0 %}{% endif %}
+            </div>
+
+            <dl class="dlist-align">
+              <dt>Tổng Tiền:</dt>
+              <dd class="text-right h5" id="cart-total-display">
+                <strong>${{ total|floatformat:2 }}</strong>
+              </dd>
+            </dl>
+            <hr />
+            <p class="text-center mb-3">
+              <a href="{% url 'orders:checkout' %}" class="btn btn-primary btn-block">Proceed to Checkout</a>
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Hàm lấy CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === name + "=") {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie("csrftoken");
+
+  // Lắng nghe sự kiện 'change' trên ô input số lượng
+  document.querySelectorAll(".cart-quantity-input").forEach((input) => {
+    input.addEventListener("change", function (e) {
+      const itemUid = this.dataset.uid;
+      const newQuantity = this.value;
+      const row = this.closest("tr"); // Lấy hàng (tr) cha
+
+      fetch("{% url 'update_cart' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken,
+        },
+        body: JSON.stringify({
+          item_uid: itemUid,
+          new_quantity: newQuantity,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "Success" || data.status === "Item removed") {
+            // 1. Xử lý xóa hàng (nếu số lượng = 0)
+            if (data.status === "Item removed") {
+              row.remove();
+            } else {
+              // 2. Cập nhật subtotal của item
+              // (Sửa lỗi: dùng data.item_subtotal thay vì data.item_total)
+              document.getElementById(`subtotal-${itemUid}`).innerText =
+                "$" + data.item_subtotal.toFixed(2);
+            }
+
+            // 3. Cập nhật Tạm tính (Subtotal)
+            // (Sửa lỗi: dùng data.subtotal)
+            document.getElementById("cart-subtotal-display").innerText =
+              "$" + data.subtotal.toFixed(2);
+
+            // 4. Cập nhật Tổng Tiền (Total)
+            // (Sửa lỗi: dùng data.cart_total)
+            document.getElementById("cart-total-display").innerHTML =
+              "<strong>$" + data.cart_total.toFixed(2) + "</strong>";
+
+            // 5. Cập nhật Giảm giá (Discount)
+            const discountRow = document.getElementById("discount-row");
+            const discountPlaceholder = document.getElementById(
+              "discount-placeholder"
+            );
+
+            if (data.discount > 0) {
+              // Nếu có giảm giá
+              const discountHtml = `
+                <dt>Giảm giá:</dt>
+                <dd class="text-right text-danger" id="cart-discount-display">
+                  - $${data.discount.toFixed(2)}
+                </dd>`;
+
+              if (discountRow) {
+                // Nếu hàng giảm giá đã có, chỉ cập nhật nội dung
+                discountRow.innerHTML = discountHtml;
+              } else {
+                // Nếu chưa có, tạo mới và chèn vào placeholder
+                discountPlaceholder.innerHTML = `<dl class="dlist-align" id="discount-row">${discountHtml}</dl>`;
+              }
+            } else {
+              // Nếu không có giảm giá
+              if (discountRow) {
+                discountRow.remove(); // Xóa hàng
+              }
+              if (discountPlaceholder) {
+                discountPlaceholder.innerHTML = ""; // Dọn dẹp placeholder
+              }
+            }
+
+            // 6. Kiểm tra xem giỏ hàng còn trống không
+            const remainingRows = document.querySelectorAll(
+              ".table-shopping-cart tbody tr"
+            );
+            if (remainingRows.length === 0) {
+              location.reload(); // Tải lại trang để hiển thị "Giỏ hàng trống"
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    });
+  });
+
+  // Logic cho nút "Remove"
+  document.querySelectorAll(".btn-remove").forEach((button) => {
+    button.addEventListener("click", function (e) {
+      e.preventDefault();
+      const itemUid = this.dataset.uid;
+      const quantityInput = document.querySelector(
+        `.cart-quantity-input[data-uid="${itemUid}"]`
+      );
+
+      // Đặt số lượng về 0 và kích hoạt sự kiện 'change'
+      // Việc này sẽ tự động gọi logic fetch ở trên
+      quantityInput.value = 0;
+      quantityInput.dispatchEvent(new Event("change"));
+    });
+  });
+</script>
+{% endblock %}
