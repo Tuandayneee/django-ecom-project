@@ -1,77 +1,234 @@
-{% extends 'base/base.html' %} {% block content %}
-<div class="container mt-5">
-  <h2>Your Shopping Cart</h2>
+{% extends 'base/base.html' %} {% load static %} {% block start %}
+<div class="container mt-5 mb-5">
+  <h2 class="mb-4">Giỏ hàng của bạn</h2>
 
-  {% if cart.cart_items.all %}
-  <table class="table align-middle">
-    <thead>
-      <tr>
-        <th scope="col">Image</th>
-        <th scope="col">Product</th>
-        <th scope="col">Unit Price</th>
-        <th scope="col">Quantity</th>
-        <th scope="col">Line Total</th>
-        <th scope="col">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in cart.cart_items.all %}
-      <tr>
-        <th scope="row">
-          {% if item.product.product_images.first %}
-          <img
-            src="{{item.product.product_images.first.image.url}}"
-            alt="{{item.product.product_name}}"
-            style="height: 100px; width: 100px; object-fit: cover"
-          />
-          {% else %}
-          <img
-            src="https://via.placeholder.com/100x100.png?text=No+Image"
-            alt="No image"
-            style="height: 100px; width: 100px; object-fit: cover"
-          />
-          {% endif %}
-        </th>
+  {% if cart_items %}
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+          <table class="table align-middle mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="ps-4">Sản phẩm</th>
+                <th>Giá</th>
+                <th>Số lượng</th>
+                <th>Tổng</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in cart_items %}
+              <tr id="row-{{ item.uid }}">
+                <td class="ps-4">
+                  <div class="d-flex align-items-center">
+                    <div
+                      style="width: 80px; height: 80px; flex-shrink: 0"
+                      class="me-3 position-relative"
+                    >
+                      {% with image=item.variant.product.product_images.first %}
+                      {% if image %}
+                      <img
+                        src="{{ image.image.url }}"
+                        class="img-fluid rounded"
+                        style="width: 100%; height: 100%; object-fit: cover"
+                      />
+                      {% else %}
+                      <img
+                        src="https://via.placeholder.com/80"
+                        class="img-fluid rounded"
+                      />
+                      {% endif %} {% endwith %}
+                    </div>
+                    <div>
+                      <a
+                        href="{% url 'product' item.variant.product.slug %}"
+                        class="text-decoration-none text-dark fw-bold"
+                      >
+                        {{ item.variant.product.product_name }}
+                      </a>
+                      <div class="small text-muted mt-1">
+                        Size: {{ item.variant.size.size_name }} <br />
+                        Màu: {{ item.variant.color.color_name }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>${{ item.variant.price}}</td>
+                <td>
+                  <div class="input-group input-group-sm" style="width: 100px">
+                    <button
+                      class="btn btn-outline-secondary btn-update"
+                      data-action="decrease"
+                      data-uid="{{ item.uid }}"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      class="form-control text-center quantity-input"
+                      value="{{ item.quantity }}"
+                      readonly
+                      id="qty-{{ item.uid }}"
+                    />
+                    <button
+                      class="btn btn-outline-secondary btn-update"
+                      data-action="increase"
+                      data-uid="{{ item.uid }}"
+                    >
+                      +
+                    </button>
+                  </div>
+                </td>
+                <td class="fw-bold" id="item-total-{{ item.uid }}">
+                  ${{ item.get_product_price }}
+                </td>
+                <td>
+                  <a
+                    href="{% url 'remove_item' item.uid %}"
+                    class="text-danger"
+                    onclick="return confirm('Bạn chắc chắn muốn xóa?')"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-        <td>
-          <a href="{% url 'product' item.product.slug %}"
-            >{{item.product.product_name}}</a
+    <div class="col-lg-4 mt-4 mt-lg-0">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Tổng đơn hàng</h5>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Tạm tính:</span>
+            <span id="cart-subtotal">${{ subtotal}}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Phí giao hàng:</span>
+            <span id="cart-subtotal">$15</span>
+          </div>
+
+          {% if discount > 0 %}
+          <div class="d-flex justify-content-between mb-2 text-success">
+            <span>Giảm giá:</span>
+            <span id="cart-discount">-${{ discount}}</span>
+          </div>
+          {% for coupon in applied_coupons %}
+          <small class="text-success d-block mb-1">
+            <i class="fa-solid fa-tag"></i> Mã {{ coupon.coupon_code }} đang áp
+            dụng
+            <a
+              href="{% url 'remove_coupon' coupon.id %}"
+              class="text-danger ms-2"
+              style="text-decoration: none"
+              >&times;</a
+            >
+          </small>
+          {% endfor %} {% endif %}
+
+          <hr />
+          <div class="d-flex justify-content-between mb-4">
+            <strong class="fs-5">Tổng cộng:</strong>
+            <strong class="fs-5 text-primary" id="cart-total"
+              >${{ total }}</strong
+            >
+          </div>
+
+          <form method="POST" action="{% url 'apply_coupon' %}" class="mb-3">
+            {% csrf_token %}
+            <div class="input-group">
+              <input
+                type="text"
+                name="coupon_code"
+                class="form-control"
+                placeholder="Mã giảm giá"
+              />
+              <button class="btn btn-outline-primary" type="submit">
+                Áp dụng
+              </button>
+            </div>
+          </form>
+
+          <a href="#" class="btn btn-primary w-100 py-2">Thanh toán ngay</a>
+          <a
+            href="{% url 'home' %}"
+            class="btn btn-outline-secondary w-100 py-2 mt-2"
+            >Tiếp tục mua sắm</a
           >
-          {% if item.variant %}
-          <br />
-          <small class="text-muted">{{ item.variant.variant_name }}</small>
-          {% endif %}
-        </td>
-
-        <td>
-          {% if item.variant %} ${{ item.variant.price }} {% else %} ${{
-          item.product.price }} {% endif %}
-        </td>
-
-        <td>{{item.quantity}}</td>
-
-        <td>${{item.get_product_price}}</td>
-
-        <td>
-          <button class="btn btn-danger btn-sm">Remove</button>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <div class="text-end">
-    <h3>Cart Total: ${{cart.get_cart_total}}</h3>
-    <a href="#" class="btn btn-lg btn-success">Proceed to Checkout</a>
+        </div>
+      </div>
+    </div>
   </div>
-
   {% else %}
-  <div class="text-center p-5">
-    <h2>Your cart is empty.</h2>
-    <a href="{% url 'home' %}" class="btn btn-primary mt-3"
-      >Continue Shopping</a
-    >
+  <div class="text-center py-5">
+    <div class="mb-4">
+      <i class="bi bi-cart-x display-1 text-muted"></i>
+    </div>
+    <h3>Giỏ hàng trống</h3>
+    <p class="text-muted">Bạn chưa thêm sản phẩm nào vào giỏ hàng.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-3">Mua sắm ngay</a>
   </div>
   {% endif %}
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const buttons = document.querySelectorAll(".btn-update");
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const uid = this.dataset.uid;
+        const action = this.dataset.action;
+        const input = document.getElementById(`qty-${uid}`);
+        let newQty = parseInt(input.value);
+
+        if (action === "increase") newQty++;
+        if (action === "decrease") newQty--;
+
+        if (newQty < 1) return;
+
+        updateCartItem(uid, newQty);
+      });
+    });
+
+    function updateCartItem(uid, qty) {
+      fetch("{% url 'update_cart' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({ item_uid: uid, new_quantity: qty }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "Success") {
+            document.getElementById(`qty-${uid}`).value = qty;
+            document.getElementById(
+              `item-total-${uid}`
+            ).innerText = `$${data.item_total}`;
+            document.getElementById(
+              `cart-subtotal`
+            ).innerText = `$${data.subtotal}`;
+            document.getElementById(
+              `cart-total`
+            ).innerText = `$${data.cart_total}`;
+            if (document.getElementById(`cart-discount`)) {
+              document.getElementById(
+                `cart-discount`
+              ).innerText = `-$${data.discount}`;
+            }
+          } else {
+            alert(data.message || "Lỗi cập nhật");
+          }
+        })
+        .catch((err) => console.error(err));
+    }
+  });
+</script>
 {% endblock %}

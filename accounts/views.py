@@ -1,18 +1,109 @@
-from .models import Cart, Profile
+from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
-from django.contrib.auth.models import User
-from django.http import HttpResponseRedirect,HttpResponse
 from django.contrib.auth import authenticate, login, logout
-from products.models import *
-from accounts.models import Cart,CartItems
-from django.http import HttpResponseRedirect
-from django.http import JsonResponse
-import json 
-def login_page(request):
+from django.contrib.auth.models import User
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+from django.db.models import Prefetch
+import json
 
+# Import Models
+from ecom.settings import DEFAULT_SHIPPING_FEE
+from products.models import Product, Variant, Coupon, ProductImage,CouponUsage
+from .models import Cart, CartItems, Profile
+
+# --- HELPER FUNCTION: LOGIC TÍNH TOÁN GIỎ HÀNG (DRY) ---
+def _get_cart_details(cart_obj):
+    cart_items = CartItems.objects.filter(cart=cart_obj).select_related(
+        'variant__product', 'variant__size', 'variant__color'
+    ).prefetch_related(
+        'variant__product__product_images'
+    ).order_by('created_at')
+
+    subtotal = cart_obj.get_cart_total()
     
+    # 1. Khởi tạo tổng giảm giá bằng 0 (để cộng dồn chuẩn xác)
+    total_discount = 0 
+    
+    valid_coupons = [] 
+    applied_coupons = cart_obj.coupons.all()
+    
+    for coupon in applied_coupons:
+        if not coupon.is_valid():
+            cart_obj.coupons.remove(coupon)
+            continue
+        if subtotal < coupon.minimum_amount:
+            continue
+
+        discount_amount = 0
+        if coupon.coupon_type == 'percent':
+            discount_amount = (subtotal * coupon.discount_price) / 100
+            
+        elif coupon.coupon_type == 'amount':
+            discount_amount = coupon.discount_price
+            
+        elif coupon.coupon_type == 'shipping':
+            # Nếu freeship, giảm đúng bằng phí ship mặc định
+            discount_amount = settings.DEFAULT_SHIPPING_FEE 
+
+        # 2. CỘNG DỒN (Chỉ dùng +=, không dùng =)
+        total_discount += discount_amount
+        valid_coupons.append(coupon)
+
+    # 3. Validation cuối cùng: Không cho giảm giá vượt quá (Tiền hàng + Ship)
+    shipping_fee = settings.DEFAULT_SHIPPING_FEE
+    cart_total_with_ship = subtotal + shipping_fee
+    
+    if total_discount > cart_total_with_ship:
+         total_discount = cart_total_with_ship
+         
+    # Công thức: Tổng = Tiền hàng + Ship - Tổng giảm giá
+    total = cart_total_with_ship - total_discount
+
+    return {
+        'cart_items': cart_items,
+        'subtotal': subtotal,
+        'shipping_fee': shipping_fee,
+        'discount': int(total_discount),
+        'total': int(total),
+        'applied_coupons': valid_coupons
+    }
+
+def register_page(request):
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email') 
+        password = request.POST.get('password')
+        
+        if User.objects.filter(username=email).exists():
+            messages.error(request, 'Email này đã được sử dụng!')
+            return render(request, 'accounts/register.html', {'first_name': first_name, 'last_name': last_name, 'email': email})
+
+        try:
+            user_obj = User.objects.create_user(username=email, email=email, first_name=first_name, last_name=last_name)
+            user_obj.set_password(password)
+            user_obj.save()
+            messages.success(request, 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.')
+            return redirect('login')
+        except Exception as e:
+            messages.error(request, f'Đã xảy ra lỗi: {e}')
+            return render(request, 'accounts/register.html', {'first_name': first_name, 'last_name': last_name, 'email': email})
+
+    return render(request, 'accounts/register.html')
+
+def activate_email(request, email_token):
+    try:
+        user_profile = Profile.objects.get(email_token=email_token)
+        user_profile.is_email_verified = True
+        user_profile.save()
+        messages.success(request, 'Tài khoản đã được kích hoạt thành công!')
+        return redirect('login')
+    except Exception:
+        return HttpResponse("Link xác thực không hợp lệ")
+
+def login_page(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -23,410 +114,174 @@ def login_page(request):
                 if not user_obj.profile.is_email_verified:
                     messages.warning(request, 'Tài khoản của bạn chưa được xác thực email.')
                     return HttpResponseRedirect(request.path_info)
-            # Chú ý: Bắt ngoại lệ đúng
-            except Profile.DoesNotExist: 
+            except Profile.DoesNotExist:
                 messages.error(request, 'Tài khoản bị lỗi, không tìm thấy Profile.')
                 return HttpResponseRedirect(request.path_info)
             
-            # Đăng nhập
             login(request, user_obj)
             
-            user_cart, created = Cart.objects.get_or_create(user=request.user, is_paid=False)
-            try:
-               
-               # --- Merge session coupons into user cart (if any) ---
-                session_coupon_ids = request.session.get('coupon_ids', [])
-                if session_coupon_ids and user_cart:
-                    try:
-                        coupons_to_add = Coupon.objects.filter(id__in=session_coupon_ids)
-                        for c in coupons_to_add:
-                            user_cart.coupons.add(c)
-                        # persist and clear session coupons
-                        user_cart.save()
-                        try:
-                            del request.session['coupon_ids']
-                        except KeyError:
-                            pass
-                    except Exception as e:
-                        print(f"Lỗi khi merge coupon vào user cart: {e}")
-
-                # --- Merge session coupons into user cart (if any) ---
-                session_coupon_ids = request.session.get('coupon_ids', [])
-                if session_coupon_ids and user_cart:
-                    try:
-                        coupons_to_add = Coupon.objects.filter(id__in=session_coupon_ids)
-                        for c in coupons_to_add:
-                            user_cart.coupons.add(c)
-                        # persist and clear session coupons
-                        user_cart.save()
-                        try:
-                            del request.session['coupon_ids']
-                        except KeyError:
-                            pass
-                    except Exception as e:
-                        print(f"Lỗi khi merge coupon vào user cart: {e}")
-
-            except Cart.DoesNotExist:
-                # Bỏ qua nếu không tìm thấy giỏ hàng trong session
-                if 'cart_id' in request.session:
-                    del request.session['cart_id']
-            except Exception as e:
-                print(f"Lỗi khi gộp giỏ hàng: {e}")
-                pass
-            # --- KẾT THÚC LOGIC GỘP GIỎ HÀNG ---
-
-            return redirect('/')
-        
+            
+            
+            return redirect('home')
         else:
             messages.warning(request, 'Sai tài khoản hoặc mật khẩu!')
             return HttpResponseRedirect(request.path_info)
-
     
     return render(request, 'accounts/login.html')
 
-
 def logout_view(request):
-    print("LOGOUT: before auth?", request.user.is_authenticated, "session_key:", request.session.session_key)
-    print("SESSION BEFORE:", dict(request.session.items()))
     logout(request)
-    print("AFTER logout; session_key:", request.session.session_key, "session items:", dict(request.session.items()))
     messages.info(request, 'Bạn đã đăng xuất thành công.')
-    return redirect('home')
+    return redirect('login')
 
-def register_page(request):
-    if request.method == 'POST':
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        email = request.POST.get('email') 
-        password = request.POST.get('password')
-        
-        # Kiểm tra username (email) tồn tại
-        if User.objects.filter(username=email).exists(): # [cite: 110]
-            messages.error(request, 'Email này đã được sử dụng!')
-            # Giữ lại giá trị form cũ để người dùng không phải nhập lại
-            context = {'first_name': first_name, 'last_name': last_name, 'email': email}
-            return render(request, 'accounts/register.html', context) 
-
-        # Tạo User (Signal sẽ tự động kích hoạt để tạo Profile và gửi mail)
-        try:
-            user_obj = User.objects.create_user(
-                username=email, 
-                email=email,
-                first_name=first_name,
-                last_name=last_name
-            ) 
-            user_obj.set_password(password) # [cite: 110]
-            user_obj.save() 
-            
-            # Thông báo thành công và chuyển hướng đến trang đăng nhập
-            messages.success(request, 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.')
-            return redirect('login') # Thay 'login' bằng name URL đăng nhập của bạn
-            
-        except Exception as e:
-            messages.error(request, f'Đã xảy ra lỗi trong quá trình đăng ký: {e}')
-            context = {'first_name': first_name, 'last_name': last_name, 'email': email}
-            return render(request, 'accounts/register.html', context) 
-
-    return render(request, 'accounts/register.html')
-    
-
-
-def activate_email(request, email_token):
-    try:
-        user = Profile.objects.get(email_token=email_token)
-        user.is_email_verified = True
-        user.save()
-        return redirect('/')
-    except Exception as e:
-       
-        return HttpResponse("Link xac thuc khong hop le")
-
-@login_required(login_url='/accounts/login/')
-def add_to_cart(request, uid):
-    # Lấy user (Giả sử bạn dùng Profile)
-    user_profile = request.user.profile 
-    
-    # Lấy variant UID từ URL
-    variant_uid = request.GET.get('variant')
-    # Lấy quantity từ URL
-    quantity = request.GET.get('quantity', 1) # Mặc định là 1
-    
-    if not variant_uid:
-        # Xử lý lỗi nếu không có variant
-        return redirect(request.META.get('HTTP_REFERER', 'home'))
-
-    try:
-        # Lấy đúng đối tượng variant
-        variant_obj = Variant.objects.get(uid=variant_uid)
-        # Lấy (hoặc tạo) giỏ hàng
-        cart, _ = Cart.objects.get_or_create(user=user_profile.user, is_paid=False)
-        
-        # Lấy (hoặc tạo) cart item
-        cart_item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            variant=variant_obj 
-        )
-
-        if created:
-            # Nếu vừa tạo mới, set số lượng
-            cart_item.quantity = int(quantity)
-        else:
-            # Nếu đã có, CỘNG DỒN số lượng
-            cart_item.quantity += int(quantity)
-        
-        # Đảm bảo số lượng không vượt quá tồn kho
-        if cart_item.quantity > variant_obj.stock:
-            cart_item.quantity = variant_obj.stock
-            # (Bạn có thể thêm message báo lỗi ở đây)
-
-        cart_item.save()
-    
-    except Variant.DoesNotExist:
-        # Xử lý lỗi
-        pass
-    except Exception as e:
-        print(e) # In lỗi ra console
-        
-    return redirect(request.META.get('HTTP_REFERGTER', 'home'))
-
-
-
-
-
-# accounts/views.py
+# --- CART & ORDER VIEWS ---
 
 @login_required(login_url='login')
 def cart(request):
-    cart_items = None
-    cart_obj = None
-    subtotal = 0
-    total_discount = 0
-    total = 0
-    applied_coupons = []
-
     try:
-        # nếu user authenticated thì lấy cart của họ, còn không thì bỏ qua (hoặc fallback session cart)
-        if request.user.is_authenticated:
-            cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-        else:
-            session_cart_id = request.session.get('cart_id')
-            if session_cart_id:
-                cart_obj = Cart.objects.get(id=session_cart_id, is_paid=False)
-
-        if cart_obj:
-            cart_items = cart_obj.cart_items.all()
-            subtotal = cart_obj.get_cart_total()
-
-            # 1) Lấy coupon từ DB (Cart.coupons) - source of truth
-            persisted_coupons = list(cart_obj.coupons.all())
-
-            # 2) Fallback / augmentation: nếu session vẫn có coupon ids (chưa được persist), thêm chúng
-            session_ids = request.session.get('coupon_ids', [])
-            if session_ids:
-                session_coupons = Coupon.objects.filter(id__in=session_ids)
-            else:
-                session_coupons = []
-
-            # Combine - keep unique ids (DB + session)
-            seen = set()
-            all_coupons = []
-            for c in persisted_coupons + list(session_coupons):
-                if c.id not in seen:
-                    seen.add(c.id)
-                    all_coupons.append(c)
-
-            # Validate each coupon and build applied list + discount
-            valid_ids_to_keep = []
-            for coupon in all_coupons:
-                if coupon.is_valid() and subtotal >= coupon.minimum_amount:
-                    total_discount += coupon.discount_price
-                    applied_coupons.append(coupon)
-                    valid_ids_to_keep.append(coupon.id)
-
-            # Update session so invalid/expired are removed
-            request.session['coupon_ids'] = valid_ids_to_keep
-
-            total = subtotal - total_discount
-            if total < 0:
-                total = 0
-
-    except Cart.DoesNotExist:
-        # no cart - keep zeros
-        pass
+        cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
+        context = _get_cart_details(cart_obj)
+        context['cart'] = cart_obj
     except Exception as e:
-        print(f"Error loading cart: {e}")
+        print(f"Cart View Error: {e}")
+        context = {'cart_items': [], 'subtotal': 0, 'total': 0, 'discount': 0}
 
-    context = {
-        'cart': cart_obj,
-        'cart_items': cart_items,
-        'subtotal': subtotal,
-        'discount': total_discount,
-        'total': total,
-        'applied_coupons': applied_coupons,
-    }
     return render(request, 'accounts/cart.html', context)
 
+@login_required(login_url='login')
+def add_to_cart(request, uid):
+    variant_uid = request.GET.get('variant')
+    try:
+        quantity = int(request.GET.get('quantity', 1))
+    except ValueError:
+        quantity = 1
+
+    if not variant_uid:
+        messages.warning(request, "Vui lòng chọn màu sắc và kích thước")
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+    try:
+        variant_obj = get_object_or_404(Variant, uid=variant_uid)
+        cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
+        
+        cart_item, created = CartItems.objects.get_or_create(
+            cart=cart_obj,
+            variant=variant_obj
+        )
+
+        if created:
+            cart_item.quantity = quantity
+        else:
+            cart_item.quantity += quantity
+
+        if cart_item.quantity > variant_obj.stock:
+            cart_item.quantity = variant_obj.stock
+            messages.warning(request, f"Sản phẩm này chỉ còn {variant_obj.stock} món trong kho.")
+
+        cart_item.save()
+        messages.success(request, "Đã thêm vào giỏ hàng")
+        
+    except Exception as e:
+        print(f"Add to cart error: {e}")
+        messages.error(request, "Có lỗi xảy ra khi thêm vào giỏ")
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required(login_url='login')
 def update_cart(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            item_uid = data.get('item_uid')
-            new_quantity = int(data.get('new_quantity'))
+    if request.method != 'POST':
+        return JsonResponse({'status': 'Invalid method'}, status=405)
 
-            cart_item = CartItems.objects.get(uid=item_uid, cart__user=request.user)
-            
-            if new_quantity > 0:
-                cart_item.quantity = new_quantity
-                cart_item.save()
-            else:
-                cart_item.delete()
+    try:
+        data = json.loads(request.body)
+        item_uid = data.get('item_uid')
+        new_quantity = int(data.get('new_quantity'))
 
-            cart = cart_item.cart
-            subtotal = cart.get_cart_total() # Lấy tổng tiền mới
+        cart_item = get_object_or_404(CartItems, uid=item_uid, cart__user=request.user)
+        
+        if new_quantity > 0:
+            if new_quantity > cart_item.variant.stock:
+                return JsonResponse({
+                    'status': 'Stock limit', 
+                    'message': f'Chỉ còn {cart_item.variant.stock} sản phẩm'
+                }, status=400)
             
-            # --- CẬP NHẬT LOGIC TÍNH TOÁN (Giống hệt hàm cart) ---
-            coupon_ids = request.session.get('coupon_ids', [])
-            total_discount = 0
-            valid_coupons_ids_to_keep = []
+            cart_item.quantity = new_quantity
+            cart_item.save()
+        else:
+            cart_item.delete()
 
-            if coupon_ids:
-                valid_coupons = Coupon.objects.filter(id__in=coupon_ids)
-                for coupon in valid_coupons:
-                    if coupon.is_valid() and subtotal >= coupon.minimum_amount:
-                        total_discount += coupon.discount_price
-                        valid_coupons_ids_to_keep.append(coupon.id)
-            
-            request.session['coupon_ids'] = valid_coupons_ids_to_keep
-            total = subtotal - total_discount
-            if total < 0:
-                total = 0
-            # --- KẾT THÚC CẬP NHẬT ---
-            
-            if new_quantity <= 0:
-                   return JsonResponse({ 
-                       'status': 'Item removed', 
-                       'subtotal': subtotal, 
-                       'discount': total_discount, # Gửi TỔNG
-                       'cart_total': total 
-                   })
+        cart_details = _get_cart_details(cart_item.cart)
 
-            return JsonResponse({ 
-                'status': 'Success', 
-                'item_subtotal': cart_item.get_total(), 
-                'subtotal': subtotal, 
-                'discount': total_discount, # Gửi TỔNG
-                'cart_total': total 
-            })
-            
-        except Exception as e:
-            return JsonResponse({'status': 'Error', 'message': str(e)}, status=400)
-    
-    return JsonResponse({'status': 'Invalid request'}, status=400)
+        return JsonResponse({
+            'status': 'Success',
+            'item_total': cart_item.get_product_price,
+            'subtotal': cart_details['subtotal'],
+            'discount': cart_details['discount'],
+            'cart_total': cart_details['total']
+        })
+
+    except Exception as e:
+        return JsonResponse({'status': 'Error', 'message': str(e)}, status=400)
+
+@login_required(login_url='login')
 def remove_item(request, cart_item_uid):
     try:
-        cart_item = CartItems.objects.get(uid=cart_item_uid, cart__user=request.user)
-        cart_item.delete()
-       
+        CartItems.objects.filter(uid=cart_item_uid, cart__user=request.user).delete()
+        messages.success(request, "Đã xóa sản phẩm khỏi giỏ hàng")
     except Exception as e:
-        print(e)
+        print(f"Remove item error: {e}")
+        messages.error(request, "Lỗi khi xóa sản phẩm")
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', 'cart'))
 
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
+@login_required(login_url='login')
 def apply_coupon(request):
     if request.method == 'POST':
         code = request.POST.get('coupon_code')
         
+        # Yêu cầu login để check usage limit
+        if not request.user.is_authenticated:
+            messages.error(request, 'Bạn cần đăng nhập để sử dụng mã giảm giá.')
+            return redirect('login')
+
         try:
-            # Try to find a Cart for the authenticated user first
-            cart_obj = None
-            if request.user.is_authenticated:
-                try:
-                    cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-                except Cart.DoesNotExist:
-                    cart_obj = None
-
-            # Fallback: try session cart (anonymous flow)
-            if cart_obj is None:
-                session_cart_id = request.session.get('cart_id')
-                if session_cart_id:
-                    try:
-                        cart_obj = Cart.objects.get(id=session_cart_id, is_paid=False)
-                    except Cart.DoesNotExist:
-                        cart_obj = None
-
-            if cart_obj is None:
-                messages.error(request, 'Bạn không có giỏ hàng để áp dụng mã.')
-                return redirect('cart')
-
-            subtotal = cart_obj.get_cart_total()
             coupon = Coupon.objects.get(coupon_code__iexact=code)
             
-            # --- ĐÂY LÀ PHẦN SỬA LỖI ---
+            # Lấy/Tạo giỏ hàng tạm để tính subtotal
+            cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
+            subtotal = cart_obj.get_cart_total()
             
-            # 1. LẤY DANH SÁCH ID HIỆN CÓ (hoặc tạo list rỗng)
-            #    Đây là bước quan trọng nhất mà code cũ của bạn đã thiếu.
-            current_coupon_ids = request.session.get('coupon_ids', [])
-            
-            # 2. Kiểm tra điều kiện
             if not coupon.is_valid():
-                messages.error(request, 'Mã giảm giá đã hết hạn hoặc bị vô hiệu hóa.')
-            elif subtotal < coupon.minimum_amount:
-                messages.error(request, f'Đơn hàng phải đạt tối thiểu {coupon.minimum_amount}đ để áp dụng mã này.')
+                messages.error(request, 'Mã giảm giá đã hết hạn hoặc không kích hoạt.')
+                return redirect('cart')
             
-            # 3. Kiểm tra xem mã ĐÃ CÓ trong danh sách chưa
-            elif coupon.id in current_coupon_ids:
-                messages.warning(request, 'Bạn đã áp dụng mã này rồi.')
-            
-            else:
-                # 4. THÊM mã mới vào danh sách (append)
-                current_coupon_ids.append(coupon.id)
-                
-                # 5. LƯU LẠI danh sách ĐÃ CẬP NHẬT vào session
-                request.session['coupon_ids'] = current_coupon_ids
-                # Also persist coupon into the Cart object's M2M for durability
-                try:
-                    
-                    if not cart_obj.coupons.filter(id=coupon.id).exists():
-                        cart_obj.coupons.add(coupon)
-                        cart_obj.save()
-                except Exception as e:
-                    print(f"Không thể lưu coupon vào Cart.coupons: {e}")
+            current_coupons = cart_obj.coupons.all()
+            for applied_c in current_coupons:
+                if applied_c.coupon_type == coupon.coupon_type:
+                    messages.error(request, f'Không thể dùng 2 mã loại {coupon.coupon_type}')
+                    return redirect('cart')
 
-                messages.success(request, f'Đã áp dụng mã {coupon.coupon_code}!')
-            # --- KẾT THÚC SỬA LỖI ---
+            cart_obj.coupons.add(coupon)
+            messages.success(request, f'Đã áp dụng mã {coupon.coupon_code}!')
+            
 
         except Coupon.DoesNotExist:
             messages.error(request, 'Mã giảm giá không tồn tại.')
-        except Cart.DoesNotExist:
-            messages.error(request, 'Bạn không có giỏ hàng để áp dụng mã.')
-        except Exception as e:
-            messages.error(request, f'Đã xảy ra lỗi: {e}')
+       
             
     return redirect('cart')
 
-
-
 def remove_coupon(request, coupon_id):
-    current_coupon_ids = request.session.get('coupon_ids', [])
-    try:
-        current_coupon_ids.remove(int(coupon_id))
-    except ValueError:
-        pass
-    request.session['coupon_ids'] = current_coupon_ids
-
     
     try:
-        if request.user.is_authenticated:
-            cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-        else:
-            session_cart_id = request.session.get('cart_id')
-            cart_obj = Cart.objects.get(id=session_cart_id, is_paid=False) if session_cart_id else None
-
-        if cart_obj:
-            cart_obj.coupons.remove(coupon_id)
-            cart_obj.save()
-    except Exception:
-        # ignore missing cart / coupon
+        cart_obj = Cart.objects.get(user=request.user, is_paid=False)
+        coupon = get_object_or_404(Coupon, id=coupon_id)
+        cart_obj.coupons.remove(coupon)
+        messages.success(request, f'Đã gỡ mã {coupon.coupon_code} khỏi giỏ hàng.')
+    except Exception as e:
+        print(f"Remove coupon error: {e}")
         pass
-
+    
+    
     return redirect('cart')

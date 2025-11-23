@@ -19,16 +19,24 @@ from django.urls import path , include
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 from home.views import index
+from accounts.api_views import CartAPIView
 
 
 urlpatterns = [
     path('', index, name='home'),
+    path('admin/', admin.site.urls),
     path('product/', include('products.urls')),
-    path('admin/' , admin.site.urls ),
-    path('accounts/',include('accounts.urls')),
-   
+    path('accounts/', include('accounts.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    
+    path('api/cart/', CartAPIView.as_view(), name='api_cart'),
    
 ]
 

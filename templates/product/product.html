@@ -69,7 +69,11 @@
       <h4 id="productPrice">${{ default_price }}</h4>
       <p id="productStock" class="text-muted">Vui lòng chọn tùy chọn</p>
 
-      <a href="#" id="addToCartBtn" class="btn btn-success btn-lg disabled">
+      <a
+        href="{% url 'add_to_cart' product.uid %}"
+        id="addToCartBtn"
+        class="btn btn-success btn-lg disabled"
+      >
         Add to Cart
       </a>
     </div>

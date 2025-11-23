@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from base.models import BaseModel
 from django.utils.text import slugify
@@ -93,12 +94,18 @@ class ProductImage(BaseModel):
 
 # --- Model COUPON (Không thay đổi) ---
 class Coupon(models.Model):
+    TYPE_CHOICES = (
+        ('shipping', 'Free Shipping'),
+        ('amount', 'Giảm tiền trực tiếp'),
+        ('percent', 'Giảm phần trăm'),
+    )
     coupon_code = models.CharField(max_length=50, unique=True, null=True, blank=True)
     discount_price = models.IntegerField(default=100)
     minimum_amount = models.IntegerField(default=500)
     is_active = models.BooleanField(default=True)
     valid_to = models.DateTimeField(null=True, blank=True)
-
+    usage_limit_per_user = models.PositiveIntegerField(default=1)
+    coupon_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='amount')
     def is_valid(self):
         if not self.is_active:
             return False
@@ -108,3 +115,11 @@ class Coupon(models.Model):
 
     def __str__(self):
         return self.coupon_code or "Chưa có mã"
+    
+class CouponUsage(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    used_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('user', 'coupon')

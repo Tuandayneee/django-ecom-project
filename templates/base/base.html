@@ -60,7 +60,7 @@
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             {% if user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="#!">Chào, {{ user.username }}</a>
+              <p class="nav-link">Chào, {{ user.username }}</p>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{% url 'logout' %}">Logout</a>
@@ -82,10 +82,9 @@
             >
               <i class="bi-cart-fill me-1"></i>
               Cart
-
               <span class="badge bg-dark text-white ms-1 rounded-pill">
-                {% if user.is_authenticated and user.profile %} {{
-                user.profile.get_cart_count }} {% else %} 0 {% endif %}
+                {% if user.is_authenticated %} {{ user.profile.get_cart_count }}
+                {% else %} 0 {% endif %}
               </span>
             </a>
           </form>
