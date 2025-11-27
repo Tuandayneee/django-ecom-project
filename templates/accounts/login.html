@@ -1,13 +1,14 @@
 {% extends "base/base.html" %} {% block start %}
 
-<section class="section-conten padding-y" style="min-height: 84vh">
-  <!-- ============================ COMPONENT LOGIN   ================================= -->
+<section class="section-content padding-y" style="min-height: 84vh">
   <div class="card mx-auto" style="max-width: 380px; margin-top: 100px">
     <div class="card-body">
       <h4 class="card-title mb-4">Sign in</h4>
+
       <form method="POST">
         {% csrf_token %} {% include "base/alert.html" %}
 
+        <input type="hidden" name="next" value="{{ request.GET.next }}" />
         <div class="form-group">
           <input
             name="email"
@@ -16,7 +17,6 @@
             type="text"
           />
         </div>
-        <!-- form-group// -->
         <div class="form-group">
           <input
             name="password"
@@ -25,8 +25,6 @@
             type="password"
           />
         </div>
-        <!-- form-group// -->
-
         <div class="form-group">
           <a href="#" class="float-right">Forgot password?</a>
           <label class="float-left custom-control custom-checkbox">
@@ -34,17 +32,12 @@
             <div class="custom-control-label">Remember</div>
           </label>
         </div>
-        <!-- form-group form-check .// -->
         <div class="form-group">
           <button type="submit" class="btn btn-primary btn-block">Login</button>
         </div>
-        <!-- form-group// -->
       </form>
     </div>
-    <!-- card-body.// -->
   </div>
-  <!-- card .// -->
-
   <p class="text-center mt-4">Don't have account? <a href="#">Sign up</a></p>
   <br /><br />
 </section>

@@ -1,0 +1,64 @@
+{% extends "base/base.html" %} {% block start %}
+<section class="section-content padding-y bg-light">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <header class="card-header">
+            <h4 class="card-title mt-2">{{ title }}</h4>
+          </header>
+          <div class="card-body">
+            <form method="POST">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.GET.next }}" />
+              <div class="form-row">
+                <div class="col form-group">
+                  <label>Tên người nhận</label>
+                  {{ form.recipient_name }}
+                </div>
+                <div class="col form-group">
+                  <label>Số điện thoại</label>
+                  {{ form.phone }}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Tỉnh / Thành phố</label>
+                {{ form.city }}
+              </div>
+
+              <div class="form-group">
+                <label>Địa chỉ cụ thể (Số nhà, đường...)</label>
+                {{ form.address_line }}
+              </div>
+
+              <div class="form-group">
+                <div class="custom-control custom-checkbox">
+                  {{ form.is_default }}
+                  <label
+                    class="custom-control-label"
+                    for="{{ form.is_default.id_for_label }}"
+                  >
+                    Đặt làm địa chỉ mặc định
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary btn-block">
+                  Lưu thay đổi
+                </button>
+                <a
+                  href="{% url 'address_list' %}"
+                  class="btn btn-light btn-block"
+                  >Quay lại</a
+                >
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

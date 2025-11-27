@@ -163,3 +163,10 @@ SIMPLE_JWT = {
 }
 
 DEFAULT_SHIPPING_FEE = 15
+
+
+VNPAY_TMN_CODE = 'SIXDZGUD'
+VNPAY_HASH_SECRET_KEY = 'B159DXK3140FGOFHWGYJ29B8J77IVVOZ'
+
+VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
+VNPAY_RETURN_URL = 'http://127.0.0.1:8000/payment_return/'

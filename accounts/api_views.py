@@ -13,7 +13,7 @@ class CartAPIView(APIView):
     def get(self, request):
         cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
         
-        # Gọi helper mới (lấy coupon từ DB)
+        
         cart_data = _get_cart_details(cart_obj)
         
         # Serialize data để trả về JSON

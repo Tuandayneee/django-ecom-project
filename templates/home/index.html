@@ -1,44 +1,221 @@
-{% extends 'base/base.html' %} {% block start %}
-<div class="container mt-5">
-  <div class="row">
-    {% for product in products %}
+{% extends 'base/base.html' %} {% load static %} {% block start %}
 
-    <div class="col-md-4 mb-4">
-      <div class="card" style="width: 18rem">
-        <a href="{% url 'product' product.slug %}">
-          <div class="product-img-wrapper">
+<section class="section-intro padding-y-sm mb-4">
+  <div class="container">
+    <div class="row justify-content-center mb-4">
+      <div class="col-md-8">
+        <form action="{% url 'home' %}" method="GET">
+          <div class="input-group shadow-sm">
+            <input
+              type="text"
+              class="form-control form-control-lg"
+              placeholder="Bạn muốn tìm gì hôm nay?"
+              name="search"
+              value="{{ request.GET.search }}"
+            />
+            <button class="btn btn-primary px-4" type="submit">
+              <i class="fa fa-search"></i> Tìm kiếm
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="mainCarousel"
+      class="carousel slide shadow rounded overflow-hidden"
+      data-bs-ride="carousel"
+    >
+      <div class="carousel-inner">
+        {% if sliders %} {% for slide in sliders %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+          <img
+            src="{{ slide.image.url }}"
+            class="d-block w-100 banner-img"
+            alt="{{ slide.name }}"
+          />
+
+          {% if slide.description %}
+          <div class="carousel-caption d-none d-md-block">
+            <p class="bg-dark d-inline-block p-2 rounded opacity-75">
+              {{ slide.description }}
+            </p>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %} {% else %}
+        <div class="carousel-item active">
+          <img
+            src="https://via.placeholder.com/1200x400/2874f0/ffffff?text=Mau+Slide+1"
+            class="d-block w-100 banner-img"
+          />
+        </div>
+        {% endif %}
+      </div>
+
+      <button
+        class="carousel-control-prev"
+        type="button"
+        data-bs-target="#mainCarousel"
+        data-bs-slide="prev"
+      >
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      </button>
+      <button
+        class="carousel-control-next"
+        type="button"
+        data-bs-target="#mainCarousel"
+        data-bs-slide="next"
+      >
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+</section>
+
+{% if categories %}
+<section class="section-content padding-y mb-4">
+  <div class="container">
+    <h4 class="mb-3 fw-bold">Danh mục sản phẩm</h4>
+    <div class="row">
+      <div class="col-lg-2 col-md-3 col-4 mb-3">
+        <a
+          href="{% url 'home' %}"
+          class="card text-center text-decoration-none shadow-sm h-100 py-3 category-card"
+        >
+          <div class="card-body p-2">
+            <i class="fa fa-th-large fa-2x text-primary mb-2"></i>
+            <h6 class="text-dark small fw-bold">Tất cả</h6>
+          </div>
+        </a>
+      </div>
+
+      {% for category in categories %}
+      <div class="col-lg-2 col-md-3 col-4 mb-3">
+        <a
+          href="{% url 'home' %}?category={{ category.slug }}"
+          class="card text-center text-decoration-none shadow-sm h-100 py-3 category-card"
+        >
+          <div class="card-body p-2">
+            {% if category.category_image %}
+            <img
+              src="{{ category.category_image.url }}"
+              class="img-fluid mb-2"
+              style="height: 40px; object-fit: contain"
+            />
+            {% else %}
+            <i class="fa fa-shopping-bag fa-2x text-warning mb-2"></i>
+            {% endif %}
+            <h6 class="text-dark small fw-bold text-truncate">
+              {{ category.category_name }}
+            </h6>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section-content padding-y bg-light py-4">
+  <div class="container">
+    <h4 class="mb-4 fw-bold">
+      {% if request.GET.search %} Kết quả tìm kiếm: "{{ request.GET.search }}"
+      {% else %} Sản phẩm mới nhất {% endif %}
+    </h4>
+
+    <div class="row">
+      {% for product in products %}
+      <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+        <div class="card h-100 shadow-sm border-0 product-card">
+          <a
+            href="{% url 'product' product.slug %}"
+            class="img-wrap pt-3 text-center"
+            style="height: 220px; overflow: hidden"
+          >
             {% if product.product_images.first %}
             <img
               src="{{ product.product_images.first.image.url }}"
-              class="card-img-top"
+              class="img-fluid"
+              style="max-height: 100%; max-width: 100%; object-fit: contain"
               alt="{{product.product_name}}"
             />
             {% else %}
             <img
               src="https://via.placeholder.com/300x200.png?text=No+Image"
-              class="card-img-top"
+              class="img-fluid"
               alt="No image"
             />
             {% endif %}
+          </a>
+
+          <div class="card-body d-flex flex-column">
+            <h6 class="card-title">
+              <a
+                href="{% url 'product' product.slug %}"
+                class="text-dark text-decoration-none title text-truncate d-block"
+              >
+                {{ product.product_name }}
+              </a>
+            </h6>
+
+            <div class="mt-auto">
+              <p class="card-text text-danger fw-bold fs-5 mb-2">
+                ${{ product.min_price }}
+              </p>
+              <a
+                href="{% url 'product' product.slug %}"
+                class="btn btn-outline-primary w-100 btn-sm"
+                >Xem chi tiết</a
+              >
+            </div>
           </div>
-        </a>
-
-        <div class="card-body">
-          <h5 class="card-title">
-            <a
-              href="{% url 'product' product.slug %}"
-              class="text-dark text-decoration-none"
-            >
-              {{product.product_name}}
-            </a>
-          </h5>
-
-          <p class="card-text">${{ product.min_price | default:0 }}</p>
         </div>
       </div>
+      {% empty %}
+      <div class="col-12 text-center py-5">
+        <i class="fa fa-search fa-3x text-muted mb-3"></i>
+        <h3>Không tìm thấy sản phẩm nào!</h3>
+        <a href="{% url 'home' %}" class="btn btn-primary mt-3"
+          >Xem tất cả sản phẩm</a
+        >
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
-</div>
+</section>
+
+<style>
+  /* --- LOGIC SLIDE MỚI --- */
+  .banner-img {
+    width: 100%;
+    /* Xóa height cố định, để auto để ảnh giữ nguyên tỉ lệ gốc */
+    height: auto;
+    /* Đảm bảo ảnh không bị vỡ layout */
+    display: block;
+  }
+
+  /* Các CSS khác giữ nguyên */
+  .category-card:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+    transform: translateY(-3px);
+    transition: all 0.3s;
+  }
+  .product-card {
+    transition: transform 0.2s;
+  }
+  .product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+  }
+  .img-wrap img {
+    transition: transform 0.3s;
+  }
+  .img-wrap:hover img {
+    transform: scale(1.05);
+  }
+</style>
 
 {% endblock %}

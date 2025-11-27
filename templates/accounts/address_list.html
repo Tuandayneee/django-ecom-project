@@ -1,0 +1,108 @@
+{% extends "base/base.html" %} {% block start\ %}
+<section class="section-content padding-y bg-light">
+  <div class="container">
+    <div class="row">
+      <aside class="col-md-3">
+        <div class="card">
+          <div class="card-body text-center">
+            <img
+              src="{{ request.user.profile.profile_image.url }}"
+              class="rounded-circle mb-3"
+              width="80"
+              height="80"
+            />
+            <h5 class="card-title">{{ request.user.username }}</h5>
+          </div>
+          <div class="list-group list-group-flush">
+            <a href="#" class="list-group-item">Thông tin tài khoản</a>
+            <a href="#" class="list-group-item">Đơn mua</a>
+            <a
+              href="{% url 'address_list' %}"
+              class="list-group-item active bg-primary text-white"
+              >Sổ địa chỉ</a
+            >
+            <a href="{% url 'logout' %}" class="list-group-item text-danger"
+              >Đăng xuất</a
+            >
+          </div>
+        </div>
+      </aside>
+
+      <main class="col-md-9">
+        <div class="card">
+          <header
+            class="card-header d-flex justify-content-between align-items-center"
+          >
+            <h5 class="mb-0">Địa chỉ của tôi</h5>
+            <a href="{% url 'add_address' %}" class="btn btn-primary btn-sm">
+              + Thêm địa chỉ mới</a
+            >
+          </header>
+          <div class="card-body">
+            {% if messages %} {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %} {% endif %}
+
+            <div class="row">
+              {% for addr in addresses %}
+              <div class="col-md-6 mb-4">
+                <div
+                  class="card h-100 {% if addr.is_default %}border-primary{% endif %}"
+                >
+                  <div class="card-body">
+                    <h6 class="card-title d-flex justify-content-between">
+                      {{ addr.recipient_name }} {% if addr.is_default %}
+                      <span class="badge badge-primary">Mặc định</span>
+                      {% endif %}
+                    </h6>
+                    <p class="card-text text-muted small">
+                      <i class="fa fa-phone"></i> {{ addr.phone }} <br />
+                      <i class="fa fa-map-marker-alt"></i> {{ addr.address_line
+                      }}, {{ addr.city }}
+                    </p>
+                  </div>
+                  <div
+                    class="card-footer bg-white border-top-0 d-flex justify-content-between"
+                  >
+                    <div>
+                      <a
+                        href="{% url 'edit_address' addr.uid %}"
+                        class="btn btn-outline-secondary btn-sm"
+                        >Sửa</a
+                      >
+                      <a
+                        href="{% url 'delete_address' addr.uid %}"
+                        class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Bạn có chắc muốn xóa địa chỉ này?')"
+                        >Xóa</a
+                      >
+                    </div>
+
+                    {% if not addr.is_default %}
+                    <a
+                      href="{% url 'set_default_address' addr.uid %}"
+                      class="btn btn-link btn-sm text-primary"
+                      >Thiết lập mặc định</a
+                    >
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="col-12 text-center py-5">
+                <img
+                  src="https://cdni.iconscout.com/illustration/premium/thumb/empty-address-book-2849929-2370335.png"
+                  width="150"
+                  alt=""
+                />
+                <p class="text-muted mt-3">Bạn chưa lưu địa chỉ nào.</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+{% endblock %}

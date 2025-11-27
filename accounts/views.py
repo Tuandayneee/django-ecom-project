@@ -9,9 +9,10 @@ from django.db.models import Prefetch
 import json
 
 # Import Models
+from accounts.forms import AddressForm
 from ecom.settings import DEFAULT_SHIPPING_FEE
 from products.models import Product, Variant, Coupon, ProductImage,CouponUsage
-from .models import Cart, CartItems, Profile
+from .models import Address, Cart, CartItems, Profile
 
 # --- HELPER FUNCTION: LOGIC TÍNH TOÁN GIỎ HÀNG (DRY) ---
 def _get_cart_details(cart_obj):
@@ -107,6 +108,7 @@ def login_page(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
+        next_url = request.POST.get('next')
         user_obj = authenticate(request, username=email, password=password)
         
         if user_obj is not None:
@@ -119,7 +121,8 @@ def login_page(request):
                 return HttpResponseRedirect(request.path_info)
             
             login(request, user_obj)
-            
+            if next_url:
+                return redirect(next_url)
             
             
             return redirect('home')
@@ -148,20 +151,25 @@ def cart(request):
 
     return render(request, 'accounts/cart.html', context)
 
-@login_required(login_url='login')
+
+@login_required(login_url='login') # <--- Mấu chốt là dòng này
 def add_to_cart(request, uid):
     variant_uid = request.GET.get('variant')
+    
+    # Logic lấy số lượng
     try:
         quantity = int(request.GET.get('quantity', 1))
     except ValueError:
         quantity = 1
 
     if not variant_uid:
-        messages.warning(request, "Vui lòng chọn màu sắc và kích thước")
+        messages.warning(request, "Vui lòng chọn màu sắc/kích thước")
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
     try:
         variant_obj = get_object_or_404(Variant, uid=variant_uid)
+        
+        # --- CHỈ CẦN LOGIC NÀY (Vì chắc chắn đã login mới vào được đây) ---
         cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
         
         cart_item, created = CartItems.objects.get_or_create(
@@ -174,18 +182,20 @@ def add_to_cart(request, uid):
         else:
             cart_item.quantity += quantity
 
+        # Check tồn kho
         if cart_item.quantity > variant_obj.stock:
             cart_item.quantity = variant_obj.stock
-            messages.warning(request, f"Sản phẩm này chỉ còn {variant_obj.stock} món trong kho.")
+            messages.warning(request, f"Chỉ còn {variant_obj.stock} sản phẩm.")
 
         cart_item.save()
         messages.success(request, "Đã thêm vào giỏ hàng")
         
     except Exception as e:
-        print(f"Add to cart error: {e}")
-        messages.error(request, "Có lỗi xảy ra khi thêm vào giỏ")
+        print(e)
+        messages.error(request, "Lỗi hệ thống")
 
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    # Thêm xong thì quay lại trang trước đó hoặc trang giỏ hàng
+    return redirect('cart')
 
 @login_required(login_url='login')
 def update_cart(request):
@@ -285,3 +295,90 @@ def remove_coupon(request, coupon_id):
     
     
     return redirect('cart')
+
+def save_address(request):
+    if request.method == 'POST':
+        # Lấy dữ liệu từ form HTML
+        recipient_name = request.POST.get('recipient_name')
+        phone = request.POST.get('phone')
+        city = request.POST.get('city')
+        address_line = request.POST.get('address_line')
+        is_default = request.POST.get('is_default') == 'on' # Checkbox trả về 'on' nếu được chọn
+
+        # Tạo địa chỉ mới
+        Address.objects.create(
+            user=request.user,
+            recipient_name=recipient_name,
+            phone=phone,
+            city=city,
+            address_line=address_line,
+            is_default=is_default
+        )
+        
+        messages.success(request, "Đã thêm địa chỉ mới thành công.")
+        
+        # Redirect về trang trước đó (thường là checkout)
+        return redirect(request.POST.get('next', 'home'))
+    
+    return redirect('home')
+
+
+@login_required(login_url='login')
+def address_list(request):
+    """ Hiển thị danh sách địa chỉ """
+    addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created_at')
+    return render(request, 'accounts/address_list.html', {'addresses': addresses})
+
+@login_required(login_url='login')
+def add_address(request):
+    """ Thêm địa chỉ mới """
+    if request.method == 'POST':
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.user = request.user
+            address.save()
+            messages.success(request, "Thêm địa chỉ mới thành công.")
+            
+            next_url = request.POST.get('next')
+            if next_url == 'checkout':
+                return redirect('orders:checkout')
+
+            return redirect('address_list')
+    else:
+        form = AddressForm()
+    
+    return render(request, 'accounts/address_form.html', {'form': form, 'title': 'Thêm địa chỉ mới'})
+
+@login_required(login_url='login')
+def edit_address(request, uid):
+    """ Sửa địa chỉ """
+    # get_object_or_404 kèm user=request.user để đảm bảo không sửa nhầm của người khác
+    address = get_object_or_404(Address, uid=uid, user=request.user)
+    
+    if request.method == 'POST':
+        form = AddressForm(request.POST, instance=address)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cập nhật địa chỉ thành công.")
+            return redirect('address_list')
+    else:
+        form = AddressForm(instance=address)
+
+    return render(request, 'accounts/address_form.html', {'form': form, 'title': 'Cập nhật địa chỉ'})
+
+@login_required(login_url='login')
+def delete_address(request, uid):
+    """ Xóa địa chỉ """
+    address = get_object_or_404(Address, uid=uid, user=request.user)
+    address.delete()
+    messages.success(request, "Đã xóa địa chỉ.")
+    return redirect('address_list')
+
+@login_required(login_url='login')
+def set_default_address(request, uid):
+    """ Đặt làm mặc định nhanh """
+    address = get_object_or_404(Address, uid=uid, user=request.user)
+    address.is_default = True
+    address.save() # Logic trong model sẽ tự động bỏ default các cái khác
+    return redirect('address_list')

@@ -27,7 +27,7 @@ class Profile(BaseModel):
     def __str__(self):
         return self.user.username
 class Cart(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts", null=True, blank=True)
     coupons = models.ManyToManyField(Coupon, blank=True, related_name='carts')
     is_paid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -54,9 +54,28 @@ class CartItems(BaseModel):
         return 0 
 
     def __str__(self):
+        
         if self.variant:
             return f"{self.variant.product.product_name} ({self.variant.variant_name}) - {self.quantity}"
         return f"Sản phẩm đã xóa - {self.quantity}"
+
+class Address(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
+    recipient_name = models.CharField(max_length=100) # Tên người nhận
+    phone = models.CharField(max_length=15)
+    address_line = models.TextField() # Số nhà, tên đường
+    city = models.CharField(max_length=100)
+    is_default = models.BooleanField(default=False) # Đặt làm mặc định
+
+    def save(self, *args, **kwargs):
+        # Logic: Nếu địa chỉ này là mặc định, các địa chỉ khác của user phải bỏ mặc định đi
+        if self.is_default:
+            Address.objects.filter(user=self.user).update(is_default=False)
+        super(Address, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.recipient_name} - {self.address_line}"
+
 
 # --- SIGNALS ---
 @receiver(post_save, sender=User)
@@ -69,3 +88,5 @@ def send_email_token(sender, instance, created, **kwargs):
             send_account_activation_email(email, email_token)
     except Exception as e:
         print(e)
+
+

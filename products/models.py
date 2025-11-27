@@ -3,7 +3,7 @@ from django.db import models
 from base.models import BaseModel
 from django.utils.text import slugify
 from django.utils import timezone
-
+from django.db.models import Min
 # --- CÁC MODEL BIẾN THỂ (TEMPLATE) ---
 # Đây là các model "mẫu" để bạn chọn trong Admin
 
@@ -49,8 +49,16 @@ class Product(BaseModel):
         related_name="products"
     )
     product_description = models.TextField(null=True, blank=True)
-
-    # Chúng ta đã xóa 'price', 'Color_variant', 'size_variant' khỏi đây
+    
+    @property
+    def min_price(self):
+        """
+        Hàm này tự động tìm giá rẻ nhất trong các biến thể (Variant)
+        Ví dụ: Áo có size S (100k), size L (120k) -> Hàm trả về 100k
+        """
+        # self.variants là do related_name="variants" ở model Variant
+        result = self.variants.aggregate(Min('price'))
+        return result['price__min'] if result['price__min'] is not None else 0
 
     def save(self, *args, **kwargs):
         if not self.slug: 

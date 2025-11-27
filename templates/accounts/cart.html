@@ -154,7 +154,11 @@
             </div>
           </form>
 
-          <a href="#" class="btn btn-primary w-100 py-2">Thanh toán ngay</a>
+          <a
+            href="{% url 'orders:checkout' %}"
+            class="btn btn-primary w-100 py-2"
+            >Thanh toán ngay</a
+          >
           <a
             href="{% url 'home' %}"
             class="btn btn-outline-secondary w-100 py-2 mt-2"
