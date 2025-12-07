@@ -1,6 +1,8 @@
-{% extends 'base/base.html' %} {% load static %} {% block start %}
+{% extends 'base/base.html' %} 
+{% load static %}
+{% load humanize %} {% block start %}
 <div class="container mt-5 mb-5">
-  <h2 class="mb-4">Giỏ hàng của bạn</h2>
+  <h2 class="mb-4 fw-bold">Giỏ hàng của bạn</h2>
 
   {% if cart_items %}
   <div class="row">
@@ -22,73 +24,44 @@
               <tr id="row-{{ item.uid }}">
                 <td class="ps-4">
                   <div class="d-flex align-items-center">
-                    <div
-                      style="width: 80px; height: 80px; flex-shrink: 0"
-                      class="me-3 position-relative"
-                    >
+                    <div style="width: 80px; height: 80px; flex-shrink: 0" class="me-3 position-relative">
                       {% with image=item.variant.product.product_images.first %}
                       {% if image %}
-                      <img
-                        src="{{ image.image.url }}"
-                        class="img-fluid rounded"
-                        style="width: 100%; height: 100%; object-fit: cover"
-                      />
+                      <img src="{{ image.image.url }}" class="img-fluid rounded border" 
+                           style="width: 100%; height: 100%; object-fit: cover" />
                       {% else %}
-                      <img
-                        src="https://via.placeholder.com/80"
-                        class="img-fluid rounded"
-                      />
-                      {% endif %} {% endwith %}
+                      <img src="https://via.placeholder.com/80" class="img-fluid rounded border" />
+                      {% endif %} 
+                      {% endwith %}
                     </div>
                     <div>
-                      <a
-                        href="{% url 'product' item.variant.product.slug %}"
-                        class="text-decoration-none text-dark fw-bold"
-                      >
+                      <a href="{% url 'product' item.variant.product.slug %}" class="text-decoration-none text-dark fw-bold">
                         {{ item.variant.product.product_name }}
                       </a>
                       <div class="small text-muted mt-1">
-                        Size: {{ item.variant.size.size_name }} <br />
-                        Màu: {{ item.variant.color.color_name }}
+                        {% if item.variant.size %} Size: {{ item.variant.size.size_name }} {% endif %}
+                        {% if item.variant.color %} <br /> Màu: {{ item.variant.color.color_name }} {% endif %}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td>${{ item.variant.price}}</td>
+                
+                <td>{{ item.variant.price|intcomma }} đ</td>
+                
                 <td>
                   <div class="input-group input-group-sm" style="width: 100px">
-                    <button
-                      class="btn btn-outline-secondary btn-update"
-                      data-action="decrease"
-                      data-uid="{{ item.uid }}"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="text"
-                      class="form-control text-center quantity-input"
-                      value="{{ item.quantity }}"
-                      readonly
-                      id="qty-{{ item.uid }}"
-                    />
-                    <button
-                      class="btn btn-outline-secondary btn-update"
-                      data-action="increase"
-                      data-uid="{{ item.uid }}"
-                    >
-                      +
-                    </button>
+                    <button class="btn btn-outline-secondary btn-update" data-action="decrease" data-uid="{{ item.uid }}">-</button>
+                    <input type="text" class="form-control text-center quantity-input" value="{{ item.quantity }}" readonly id="qty-{{ item.uid }}" />
+                    <button class="btn btn-outline-secondary btn-update" data-action="increase" data-uid="{{ item.uid }}">+</button>
                   </div>
                 </td>
+                
                 <td class="fw-bold" id="item-total-{{ item.uid }}">
-                  ${{ item.get_product_price }}
+                  {{ item.get_product_price|intcomma }} đ
                 </td>
+                
                 <td>
-                  <a
-                    href="{% url 'remove_item' item.uid %}"
-                    class="text-danger"
-                    onclick="return confirm('Bạn chắc chắn muốn xóa?')"
-                  >
+                  <a href="{% url 'remove_item' item.uid %}" class="text-danger" onclick="return confirm('Bạn chắc chắn muốn xóa?')">
                     <i class="fa-solid fa-trash"></i>
                   </a>
                 </td>
@@ -101,87 +74,91 @@
     </div>
 
     <div class="col-lg-4 mt-4 mt-lg-0">
-      <div class="card border-0 shadow-sm">
+      <div class="card border-0 shadow-sm position-sticky" style="top: 20px;">
         <div class="card-body">
-          <h5 class="card-title mb-3">Tổng đơn hàng</h5>
+          <h5 class="card-title mb-3 fw-bold">Tổng đơn hàng</h5>
+          
           <div class="d-flex justify-content-between mb-2">
             <span>Tạm tính:</span>
-            <span id="cart-subtotal">${{ subtotal}}</span>
+            <span id="cart-subtotal">{{ subtotal|intcomma }} đ</span>
           </div>
+          
           <div class="d-flex justify-content-between mb-2">
             <span>Phí giao hàng:</span>
-            <span id="cart-subtotal">$15</span>
+            <span id="cart-shipping">
+                {% if shipping_fee > 0 %}
+                    + {{ shipping_fee|intcomma }} đ
+                    {% if has_default_address %}
+                        <br><small class="text-success" style="font-size: 11px;">(Theo địa chỉ mặc định)</small>
+                    {% else %}
+                        <br><small class="text-muted" style="font-size: 11px;">(Tạm tính)</small>
+                    {% endif %}
+                {% else %}
+                    {% if subtotal > 1000000 %}
+                        <span class="text-success">Miễn phí</span>
+                    {% else %}
+                        <span>---</span>
+                    {% endif %}
+                {% endif %}
+            </span>
           </div>
 
           {% if discount > 0 %}
           <div class="d-flex justify-content-between mb-2 text-success">
             <span>Giảm giá:</span>
-            <span id="cart-discount">-${{ discount}}</span>
+            <span id="cart-discount">- {{ discount|intcomma }} đ</span>
           </div>
-          {% for coupon in applied_coupons %}
-          <small class="text-success d-block mb-1">
-            <i class="fa-solid fa-tag"></i> Mã {{ coupon.coupon_code }} đang áp
-            dụng
-            <a
-              href="{% url 'remove_coupon' coupon.id %}"
-              class="text-danger ms-2"
-              style="text-decoration: none"
-              >&times;</a
-            >
+          {% endif %}
+          
+          {% for coupon in cart.coupons.all %}
+          <small class="text-success d-block mb-1 bg-light p-1 rounded border border-success">
+            <i class="fa-solid fa-tag me-1"></i> Mã <strong>{{ coupon.coupon_code }}</strong>
+            <a href="{% url 'remove_coupon' coupon.id %}" class="text-danger ms-2 float-end" style="text-decoration: none" title="Gỡ mã">&times;</a>
           </small>
-          {% endfor %} {% endif %}
+          {% endfor %}
 
           <hr />
+          
           <div class="d-flex justify-content-between mb-4">
             <strong class="fs-5">Tổng cộng:</strong>
-            <strong class="fs-5 text-primary" id="cart-total"
-              >${{ total }}</strong
-            >
+            <strong class="fs-5 text-primary" id="cart-total">{{ total|intcomma }} đ</strong>
           </div>
 
           <form method="POST" action="{% url 'apply_coupon' %}" class="mb-3">
             {% csrf_token %}
             <div class="input-group">
-              <input
-                type="text"
-                name="coupon_code"
-                class="form-control"
-                placeholder="Mã giảm giá"
-              />
-              <button class="btn btn-outline-primary" type="submit">
-                Áp dụng
-              </button>
+              <input type="text" name="coupon_code" class="form-control" placeholder="Mã giảm giá" required />
+              <button class="btn btn-outline-primary" type="submit">Áp dụng</button>
             </div>
           </form>
 
-          <a
-            href="{% url 'orders:checkout' %}"
-            class="btn btn-primary w-100 py-2"
-            >Thanh toán ngay</a
-          >
-          <a
-            href="{% url 'home' %}"
-            class="btn btn-outline-secondary w-100 py-2 mt-2"
-            >Tiếp tục mua sắm</a
-          >
+          <a href="{% url 'orders:checkout' %}" class="btn btn-primary w-100 py-2 fw-bold">Thanh toán ngay</a>
+          <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 py-2 mt-2">Tiếp tục mua sắm</a>
         </div>
       </div>
     </div>
   </div>
+  
   {% else %}
   <div class="text-center py-5">
     <div class="mb-4">
-      <i class="bi bi-cart-x display-1 text-muted"></i>
+      <i class="bi bi-cart-x display-1 text-muted" style="font-size: 4rem;"></i>
     </div>
     <h3>Giỏ hàng trống</h3>
     <p class="text-muted">Bạn chưa thêm sản phẩm nào vào giỏ hàng.</p>
-    <a href="{% url 'home' %}" class="btn btn-primary mt-3">Mua sắm ngay</a>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-3 px-4 py-2">Mua sắm ngay</a>
   </div>
   {% endif %}
 </div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    
+    // Hàm định dạng tiền Việt Nam (VD: 100.000 đ)
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+    }
+
     const buttons = document.querySelectorAll(".btn-update");
 
     buttons.forEach((btn) => {
@@ -194,7 +171,7 @@
         if (action === "increase") newQty++;
         if (action === "decrease") newQty--;
 
-        if (newQty < 1) return;
+        if (newQty < 1) return; // Không cho giảm dưới 1
 
         updateCartItem(uid, newQty);
       });
@@ -212,23 +189,37 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.status === "Success") {
+            // Cập nhật số lượng
             document.getElementById(`qty-${uid}`).value = qty;
-            document.getElementById(
-              `item-total-${uid}`
-            ).innerText = `$${data.item_total}`;
-            document.getElementById(
-              `cart-subtotal`
-            ).innerText = `$${data.subtotal}`;
-            document.getElementById(
-              `cart-total`
-            ).innerText = `$${data.cart_total}`;
-            if (document.getElementById(`cart-discount`)) {
-              document.getElementById(
-                `cart-discount`
-              ).innerText = `-$${data.discount}`;
+            
+            // Cập nhật giá tiền item (dùng hàm format)
+            document.getElementById(`item-total-${uid}`).innerText = formatCurrency(data.item_total);
+            
+            // Cập nhật các tổng tiền bên phải
+            document.getElementById(`cart-subtotal`).innerText = formatCurrency(data.subtotal);
+            document.getElementById(`cart-total`).innerText = formatCurrency(data.cart_total);
+            
+            // Cập nhật giảm giá (nếu có)
+            const discountElem = document.getElementById(`cart-discount`);
+            if (discountElem) {
+              discountElem.innerText = `-${formatCurrency(data.discount)}`;
             }
+            
+            // Cập nhật phí ship (nếu API trả về)
+            const shipElem = document.getElementById(`cart-shipping`);
+            if (shipElem && data.shipping_fee !== undefined) {
+                 if(data.shipping_fee === 0) {
+                     // Nếu bạn muốn hiển thị chữ Miễn phí
+                     // shipElem.innerHTML = '<span class="text-success">Miễn phí</span>';
+                 } else {
+                     // shipElem.innerText = `+ ${formatCurrency(data.shipping_fee)}`;
+                 }
+                 // Lưu ý: Logic update UI ship hơi phức tạp vì có text (Tạm tính), 
+                 // nên đơn giản nhất là reload trang nếu muốn update ship chính xác.
+            }
+
           } else {
-            alert(data.message || "Lỗi cập nhật");
+            alert(data.message || "Lỗi cập nhật giỏ hàng");
           }
         })
         .catch((err) => console.error(err));

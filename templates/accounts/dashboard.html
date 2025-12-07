@@ -1,0 +1,94 @@
+{% extends "base/base.html" %}
+{% load humanize %}
+
+{% block start %}
+<section class="section-content padding-y bg-light" style="min-height: 80vh;">
+    <div class="container">
+        <div class="row">
+            
+            <div class="col-md-3">
+                {% include "includes/user_sidebar.html" with active_tab="overview" %}
+            </div>
+
+            <main class="col-md-9">
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100">
+                            <div class="card-body text-center">
+                                <i class="fa fa-clipboard-list fa-2x text-primary mb-2"></i>
+                                <h6 class="text-muted">Tổng đơn hàng</h6>
+                                <h3 class="fw-bold text-primary">{{ total_orders }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm bg-warning bg-opacity-10 h-100">
+                            <div class="card-body text-center">
+                                <i class="fa fa-clock fa-2x text-warning mb-2"></i>
+                                <h6 class="text-muted">Chờ xử lý</h6>
+                                <h3 class="fw-bold text-warning">{{ pending_count }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100">
+                            <div class="card-body text-center">
+                                <i class="fa fa-check-circle fa-2x text-success mb-2"></i>
+                                <h6 class="text-muted">Hoàn thành</h6>
+                                <h3 class="fw-bold text-success">{{ completed_count }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Đơn hàng mới nhất</h5>
+                        <a href="{% url 'user_orders' %}" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Mã đơn</th>
+                                    <th>Ngày đặt</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td class="ps-4 fw-bold">#{{ order.order_number|slice:":8" }}</td>
+                                    <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                                    <td>{{ order.order_total|intcomma }} đ</td>
+                                    <td>
+                                        {% if order.status == 'Pending' %}
+                                            <span class="badge bg-warning text-dark">Chờ xử lý</span>
+                                        {% elif order.status == 'paid' or order.status == 'shipped' %}
+                                            <span class="badge bg-success">Hoàn thành</span>
+                                        {% elif order.status == 'cancelled' %}
+                                            <span class="badge bg-danger">Đã hủy</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'order_detail' order.uid %}" class="btn btn-sm btn-light">Chi tiết</a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">Chưa có đơn hàng nào.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</section>
+{% endblock %}

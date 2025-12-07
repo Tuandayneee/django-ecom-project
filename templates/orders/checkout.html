@@ -1,6 +1,9 @@
-{% extends "base/base.html" %} {% load static %} {% block start %}
+{% extends "base/base.html" %} 
+{% load static %} 
+{% load humanize %} {% block start %}
 <section class="section-content padding-y bg">
   <div class="container">
+    
     {% if messages %}
     <div class="row">
       <div class="col-md-12">
@@ -20,142 +23,80 @@
 
       <div class="row">
         <div class="col-md-8">
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">1. Địa chỉ nhận hàng</h5>
+          
+          <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-white text-primary fw-bold">
+                <i class="fa fa-map-marker-alt me-2"></i> 1. Địa chỉ nhận hàng
             </div>
             <div class="card-body">
-              {% if addresses %} {% for addr in addresses %}
-              <div
-                class="form-check mb-3 p-3 border rounded {% if addr.is_default %}border-primary bg-light{% endif %}"
-              >
-                <input
-                  class="form-check-input ml-1"
-                  type="radio"
-                  name="selected_address"
-                  id="addr_{{ addr.uid }}"
-                  value="{{ addr.uid }}"
-                  {%
-                  if
-                  addr.is_default
-                  %}checked{%
-                  endif
-                  %}
-                  style="transform: scale(1.5)"
-                />
+                
+                {% if addresses %}
+                    <div class="address-list" style="max-height: 300px; overflow-y: auto;">
+                        {% for addr in addresses %}
+                        <div class="form-check mb-3 p-3 border rounded position-relative {% if addr.is_default %}border-primary bg-light{% endif %}">
+                            <input class="form-check-input ml-1" type="radio" 
+                                  name="selected_address" id="addr_{{ addr.uid }}" value="{{ addr.uid }}" 
+                                  {% if addr.is_default %}checked{% endif %}
+                                  style="transform: scale(1.2); margin-top: 5px;">
+                            
+                            <label class="form-check-label ml-4 w-100 cursor-pointer" for="addr_{{ addr.uid }}">
+                                <strong class="d-block text-dark">
+                                    {{ addr.recipient_name }} <span class="text-muted fw-normal">| {{ addr.phone }}</span>
+                                </strong>
+                                <span class="text-muted small d-block my-1">
+                                    {{ addr.address_line }}, {{ addr.city }}
+                                </span>
+                                {% if addr.is_default %}
+                                    <span class="badge bg-primary">Mặc định</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-toggle="modal" data-target="#addAddressModal">
+                        <i class="fa fa-plus"></i> Thêm địa chỉ khác
+                    </button>
 
-                <label class="form-check-label ml-4" for="addr_{{ addr.uid }}">
-                  <strong class="d-block"
-                    >{{ addr.recipient_name }} - {{ addr.phone }}</strong
-                  >
-                  <span class="text-muted"
-                    >{{ addr.address_line }}, {{ addr.city }}</span
-                  >
-                  {% if addr.is_default %}
-                  <span class="badge badge-primary ml-2">Mặc định</span>
-                  {% endif %}
-                </label>
-              </div>
-              {% endfor %} {% else %}
-              <div class="alert alert-warning">
-                Bạn chưa có địa chỉ nào. Vui lòng thêm địa chỉ mới bên dưới.
-              </div>
-              {% endif %}
-
-              <a
-                href="{% url 'add_address' %}?next=checkout"
-                class="btn btn-outline-primary btn-sm mt-2"
-              >
-                <i class="fa fa-plus"></i> Thêm địa chỉ mới
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-4">
-          <div class="card mb-3">
-            <div class="card-header">
-              <h5 class="mb-0">Đơn hàng của bạn</h5>
-            </div>
-            <div class="card-body">
-              <dl class="dlist-align">
-                <dt>Tạm tính:</dt>
-                <dd class="text-right">{{ cart_data.subtotal }} đ</dd>
-              </dl>
-              <dl class="dlist-align">
-                <dt>Phí ship:</dt>
-                <dd class="text-right text-danger">
-                  + {{ cart_data.shipping_fee }} đ
-                </dd>
-              </dl>
-              <dl class="dlist-align">
-                <dt>Giảm giá:</dt>
-                <dd class="text-right text-success">
-                  - {{ cart_data.discount }} đ
-                </dd>
-              </dl>
-              <hr />
-              <dl class="dlist-align">
-                <dt>Tổng cộng:</dt>
-                <dd class="text-right text-dark b">
-                  <strong>{{ cart_data.total }} đ</strong>
-                </dd>
-              </dl>
-
-              <hr />
-              <small class="text-muted"
-                >Gồm {{ cart_data.cart_items.count }} sản phẩm</small
-              >
-              <div class="mt-2">
-                {% for item in cart_data.cart_items|slice:":3" %}
-                <img
-                  src="{{ item.variant.product.product_images.first.image.url }}"
-                  class="border rounded"
-                  width="40"
-                  height="40"
-                  style="object-fit: cover"
-                />
-                {% endfor %} {% if cart_data.cart_items.count > 3 %}
-                <span class="text-muted ml-1">...</span>
+                {% else %}
+                    <div class="text-center py-4">
+                        <div class="mb-3">
+                            <span class="fa-stack fa-2x">
+                                <i class="fas fa-circle fa-stack-2x text-light"></i>
+                                <i class="fas fa-map-marker-alt fa-stack-1x text-muted"></i>
+                            </span>
+                        </div>
+                        <h6 class="text-muted mb-3">Bạn chưa có địa chỉ giao hàng nào.</h6>
+                        
+                        <button type="button" class="btn btn-primary pulse-animation" data-toggle="modal" data-target="#addAddressModal">
+                            <i class="fa fa-plus-circle me-1"></i> Thêm địa chỉ mới ngay
+                        </button>
+                    </div>
+                    
+                    <input type="hidden" id="no_address_flag" value="true">
                 {% endif %}
-              </div>
             </div>
           </div>
 
-          <div class="card mb-3">
-            <div class="card-header">
-              <h5 class="mb-0">2. Thanh toán</h5>
+          <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-white text-primary fw-bold">
+                <i class="fa fa-credit-card me-2"></i> 2. Phương thức thanh toán
             </div>
             <div class="card-body">
-              <div class="form-group">
-                <label class="custom-control custom-radio">
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="vnpay"
-                    class="custom-control-input"
-                    checked
-                  />
-                  <div class="custom-control-label">
-                    Thanh toán VNPay
-                    <img
-                      src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg"
-                      height="20"
-                      class="float-right"
-                    />
+              <div class="form-group mb-3">
+                <label class="custom-control custom-radio d-flex align-items-center cursor-pointer">
+                  <input type="radio" name="payment_method" value="VNPay" class="custom-control-input me-2" checked />
+                  <div class="custom-control-label w-100">
+                    Thanh toán qua VNPay
+                    <img src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg" height="20" class="float-right" />
                   </div>
                 </label>
               </div>
 
               <div class="form-group">
-                <label class="custom-control custom-radio">
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="cod"
-                    class="custom-control-input"
-                  />
-                  <div class="custom-control-label">
+                <label class="custom-control custom-radio d-flex align-items-center cursor-pointer">
+                  <input type="radio" name="payment_method" value="cod" class="custom-control-input me-2" />
+                  <div class="custom-control-label w-100">
                     Thanh toán khi nhận hàng (COD)
                     <i class="fa fa-truck float-right text-muted"></i>
                   </div>
@@ -164,100 +105,148 @@
             </div>
           </div>
 
-          <button
-            type="submit"
-            class="btn btn-primary btn-block btn-lg"
-            {%
-            if
-            not
-            addresses
-            %}disabled{%
-            endif
-            %}
-          >
+        </div>
+
+        <div class="col-md-4">
+          <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-white fw-bold">
+                <i class="fa fa-file-invoice-dollar me-2"></i> Đơn hàng của bạn
+            </div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-2">
+                <span>Tạm tính:</span>
+                <span class="text-right">{{ cart_data.subtotal|intcomma }} đ</span>
+              </div>
+
+              <div class="d-flex justify-content-between mb-2">
+                <span>Phí vận chuyển:</span>
+                <span class="text-right">
+                    {% if cart_data.shipping_fee > 0 %}
+                        + {{ cart_data.shipping_fee|intcomma }} đ
+                    {% else %}
+                        <span class="text-success">Miễn phí</span>
+                    {% endif %}
+                </span>
+              </div>
+
+              {% if cart_data.tax > 0 %}
+              <div class="d-flex justify-content-between mb-2">
+                <span>Thuế (Tax):</span>
+                <span class="text-right text-muted">+ {{ cart_data.tax|intcomma }} đ</span>
+              </div>
+              {% endif %}
+
+              {% if cart_data.discount > 0 %}
+              <div class="d-flex justify-content-between mb-2">
+                <span>Giảm giá:</span>
+                <span class="text-right text-danger">- {{ cart_data.discount|intcomma }} đ</span>
+              </div>
+              {% endif %}
+
+              <hr />
+              
+              <div class="d-flex justify-content-between mb-3">
+                <strong class="text-dark">Tổng cộng:</strong>
+                <strong class="text-primary fs-5">{{ cart_data.total|intcomma }} đ</strong>
+              </div>
+
+              <hr />
+              
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                  <small class="text-muted">Sản phẩm ({{ cart_data.cart_items.count }})</small>
+                  <a href="{% url 'cart' %}" class="small text-decoration-none">Sửa</a>
+              </div>
+              
+              <div class="mt-2 d-flex flex-wrap gap-2">
+                {% for item in cart_data.cart_items|slice:":4" %}
+                    {% if item.variant.product.product_images.first %}
+                    <img
+                    src="{{ item.variant.product.product_images.first.image.url }}"
+                    class="border rounded me-1 mb-1"
+                    width="50" height="50"
+                    style="object-fit: cover"
+                    title="{{ item.variant.product.product_name }}"
+                    />
+                    {% endif %}
+                {% endfor %} 
+                {% if cart_data.cart_items.count > 4 %}
+                <span class="badge bg-light text-dark border d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                    +{{ cart_data.cart_items.count|add:"-4" }}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg w-100 shadow-sm" {% if not addresses %}disabled{% endif %}>
             Xác nhận đặt hàng
           </button>
-          <a href="{% url 'cart' %}" class="btn btn-light btn-block"
-            >Quay lại giỏ hàng</a
-          >
+          
+          <a href="{% url 'cart' %}" class="btn btn-outline-secondary btn-block w-100 mt-2">
+            Quay lại giỏ hàng
+          </a>
         </div>
       </div>
     </form>
   </div>
 </section>
 
-<div
-  class="modal fade"
-  id="addAddressModal"
-  tabindex="-1"
-  role="dialog"
-  aria-labelledby="exampleModalLabel"
-  aria-hidden="true"
->
+<div class="modal fade" id="addAddressModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Thêm địa chỉ mới</h5>
-        <button
-          type="button"
-          class="close"
-          data-dismiss="modal"
-          aria-label="Close"
-        >
-          <span aria-hidden="true">&times;</span>
-        </button>
+        <h5 class="modal-title">Thêm địa chỉ mới</h5>
+        <button type="button" class="close btn-close" data-dismiss="modal" aria-label="Close"></button>
       </div>
       <form action="{% url 'save_address' %}" method="POST">
         {% csrf_token %}
         <div class="modal-body">
-          <div class="form-group">
+          <div class="form-group mb-3">
             <label>Tên người nhận</label>
-            <input
-              type="text"
-              name="recipient_name"
-              class="form-control"
-              required
-            />
+            <input type="text" name="recipient_name" class="form-control" required />
           </div>
-          <div class="form-group">
+          <div class="form-group mb-3">
             <label>Số điện thoại</label>
             <input type="text" name="phone" class="form-control" required />
           </div>
-          <div class="form-group">
+          <div class="form-group mb-3">
             <label>Tỉnh/Thành phố</label>
             <input type="text" name="city" class="form-control" required />
           </div>
-          <div class="form-group">
-            <label>Địa chỉ cụ thể (Số nhà, đường...)</label>
-            <textarea
-              name="address_line"
-              class="form-control"
-              rows="2"
-              required
-            ></textarea>
+          <div class="form-group mb-3">
+            <label>Địa chỉ cụ thể</label>
+            <textarea name="address_line" class="form-control" rows="2" required></textarea>
           </div>
-          <div class="form-group form-check">
-            <input
-              type="checkbox"
-              name="is_default"
-              class="form-check-input"
-              id="checkDefault"
-            />
-            <label class="form-check-label" for="checkDefault"
-              >Đặt làm mặc định</label
-            >
+          <div class="form-check mb-3">
+            <input type="checkbox" name="is_default" class="form-check-input" id="checkDefault" />
+            <label class="form-check-label" for="checkDefault">Đặt làm mặc định</label>
           </div>
           <input type="hidden" name="next" value="orders:checkout" />
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">
-            Hủy
-          </button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
           <button type="submit" class="btn btn-primary">Lưu địa chỉ</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Kiểm tra xem có cờ "no_address_flag" không
+        const noAddress = document.getElementById('no_address_flag');
+        
+        if (noAddress) {
+            
+            if (typeof $ !== 'undefined') {
+                $('#addAddressModal').modal('show');
+            } 
+            
+            else if (typeof bootstrap !== 'undefined') {
+                var myModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
+                myModal.show();
+            }
+        }
+    });
+</script>
 {% endblock %}

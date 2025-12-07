@@ -61,12 +61,14 @@ class CartItems(BaseModel):
 
 class Address(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
-    recipient_name = models.CharField(max_length=100) # Tên người nhận
+    full_name = models.CharField(max_length=100) # Tên người nhận
     phone = models.CharField(max_length=15)
     address_line = models.TextField() # Số nhà, tên đường
     city = models.CharField(max_length=100)
     is_default = models.BooleanField(default=False) # Đặt làm mặc định
-
+    province_id = models.IntegerField(null=True, blank=True)
+    district_id = models.IntegerField(null=True, blank=True)
+    ward_code = models.CharField(max_length=50, null=True, blank=True)
     def save(self, *args, **kwargs):
         # Logic: Nếu địa chỉ này là mặc định, các địa chỉ khác của user phải bỏ mặc định đi
         if self.is_default:
@@ -74,7 +76,7 @@ class Address(BaseModel):
         super(Address, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.recipient_name} - {self.address_line}"
+        return f"{self.full_name} - {self.address_line}"
 
 
 # --- SIGNALS ---

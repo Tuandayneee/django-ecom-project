@@ -1,0 +1,289 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block start %}
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+    .login-wrapper {
+        background-color: #c9d6ff;
+        background: linear-gradient(to right, #e2e2e2, #c9d6ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        height: 100vh;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .container-login {
+        background-color: #fff;
+        border-radius: 30px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+        position: relative;
+        overflow: hidden;
+        width: 768px;
+        max-width: 100%;
+        min-height: 480px;
+    }
+
+    .container-login p {
+        font-size: 14px;
+        line-height: 20px;
+        letter-spacing: 0.3px;
+        margin: 20px 0;
+    }
+
+    .container-login span {
+        font-size: 12px;
+    }
+
+    .container-login a {
+        color: #333;
+        font-size: 13px;
+        text-decoration: none;
+        margin: 15px 0 10px;
+    }
+
+    .container-login button {
+        background-color: #512da8;
+        color: #fff;
+        font-size: 12px;
+        padding: 10px 45px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-top: 10px;
+        cursor: pointer;
+    }
+
+    .container-login button.hidden {
+        background-color: transparent;
+        border-color: #fff;
+    }
+
+    .container-login form {
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 0 40px;
+        height: 100%;
+    }
+
+    .container-login input {
+        background-color: #eee;
+        border: none;
+        margin: 8px 0;
+        padding: 10px 15px;
+        font-size: 13px;
+        border-radius: 8px;
+        width: 100%;
+        outline: none;
+    }
+
+    .form-container {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        transition: all 0.6s ease-in-out;
+    }
+
+    /* SIGN IN (LOGIN) */
+    .sign-in {
+        left: 0;
+        width: 50%;
+        z-index: 2;
+    }
+
+    .container-login.active .sign-in {
+        transform: translateX(100%);
+    }
+
+    /* SIGN UP (REGISTER) */
+    .sign-up {
+        left: 0;
+        width: 50%;
+        opacity: 0;
+        z-index: 1;
+    }
+
+    .container-login.active .sign-up {
+        transform: translateX(100%);
+        opacity: 1;
+        z-index: 5;
+        animation: move 0.6s;
+    }
+
+    @keyframes move {
+        0%, 49.99% {
+            opacity: 0;
+            z-index: 1;
+        }
+        50%, 100% {
+            opacity: 1;
+            z-index: 5;
+        }
+    }
+
+    /* OVERLAY (MÀU TÍM) */
+    .toggle-container {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 50%;
+        height: 100%;
+        overflow: hidden;
+        transition: all 0.6s ease-in-out;
+        border-radius: 150px 0 0 100px;
+        z-index: 1000;
+    }
+
+    .container-login.active .toggle-container {
+        transform: translateX(-100%);
+        border-radius: 0 150px 100px 0;
+    }
+
+    .toggle {
+        background-color: #512da8;
+        height: 100%;
+        background: linear-gradient(to right, #5c6bc0, #512da8);
+        color: #fff;
+        position: relative;
+        left: -100%;
+        height: 100%;
+        width: 200%;
+        transform: translateX(0);
+        transition: all 0.6s ease-in-out;
+    }
+
+    .container-login.active .toggle {
+        transform: translateX(50%);
+    }
+
+    .toggle-panel {
+        position: absolute;
+        width: 50%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 0 30px;
+        text-align: center;
+        top: 0;
+        transform: translateX(0);
+        transition: all 0.6s ease-in-out;
+    }
+
+    .toggle-left {
+        transform: translateX(-200%);
+    }
+
+    .container-login.active .toggle-left {
+        transform: translateX(0);
+    }
+
+    .toggle-right {
+        right: 0;
+        transform: translateX(0);
+    }
+
+    .container-login.active .toggle-right {
+        transform: translateX(200%);
+    }
+</style>
+
+<div class="login-wrapper">
+    
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="position: absolute; top: 20px; z-index: 2000;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container-login" id="container">
+        
+        <div class="form-container sign-up">
+            <form action="{% url 'register' %}" method="POST">
+                {% csrf_token %}
+                <h1>Tạo tài khoản</h1>
+                <span>hoặc sử dụng email để đăng ký</span>
+                
+                <input type="text" name="first_name" placeholder="Họ (First Name)" required />
+                <input type="text" name="last_name" placeholder="Tên (Last Name)" required />
+                <input type="email" name="email" placeholder="Email" required />
+                <input type="password" name="password" placeholder="Mật khẩu" required />
+                
+                <button type="submit">Đăng Ký</button>
+            </form>
+        </div>
+
+        <div class="form-container sign-in">
+            <form action="{% url 'login' %}" method="POST">
+                {% csrf_token %}
+                <h1>Đăng nhập</h1>
+                <span>sử dụng tài khoản của bạn</span>
+                
+                <input type="hidden" name="next" value="{{ request.GET.next }}">
+                
+                <input type="email" name="email" placeholder="Email" required />
+                <input type="password" name="password" placeholder="Mật khẩu" required />
+                <a href="#">Quên mật khẩu?</a>
+                
+                <button type="submit">Đăng Nhập</button>
+            </form>
+        </div>
+
+        <div class="toggle-container">
+            <div class="toggle">
+                <div class="toggle-panel toggle-left">
+                    <h1>Chào mừng trở lại!</h1>
+                    <p>Nhập thông tin cá nhân của bạn để sử dụng tất cả các tính năng của trang web</p>
+                    <button class="hidden" id="login">Đăng Nhập</button>
+                </div>
+                
+                <div class="toggle-panel toggle-right">
+                    <h1>Chào bạn mới!</h1>
+                    <p>Đăng ký tài khoản với thông tin cá nhân để bắt đầu hành trình với chúng tôi</p>
+                    <button class="hidden" id="register">Đăng Ký</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const container = document.getElementById('container');
+    const registerBtn = document.getElementById('register');
+    const loginBtn = document.getElementById('login');
+
+    // Bấm nút Đăng ký -> Thêm class active (Trượt sang trái)
+    registerBtn.addEventListener('click', () => {
+        container.classList.add("active");
+    });
+
+    // Bấm nút Đăng nhập -> Xóa class active (Trượt về phải)
+    loginBtn.addEventListener('click', () => {
+        container.classList.remove("active");
+    });
+
+    // --- SENIOR LOGIC: GIỮ TRẠNG THÁI KHI CÓ LỖI ---
+    // Nếu người dùng đăng ký lỗi (ví dụ email trùng), trang reload lại.
+    // Mặc định nó sẽ hiện form Login. Ta cần JS tự động chuyển sang form Register để hiện lỗi.
+    
+    // Kiểm tra URL hiện tại hoặc context từ Django để biết đang ở view nào
+    // Cách đơn giản: Nếu URL là /register/ hoặc có lỗi trong form register
+    {% if request.path == '/accounts/register/' or 'register' in request.path %}
+        container.classList.add("active");
+    {% endif %}
+</script>
+
+{% endblock %}

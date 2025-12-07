@@ -1,0 +1,32 @@
+{% load static %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center">
+        <div class="mb-3">
+            {% if request.user.profile.profile_image %}
+                <img src="{{ request.user.profile.profile_image.url }}" class="rounded-circle border p-1" width="90" height="90" style="object-fit: cover;">
+            {% else %}
+                <img src="https://via.placeholder.com/90" class="rounded-circle border p-1">
+            {% endif %}
+        </div>
+        <h6 class="fw-bold">{{ request.user.first_name }} {{ request.user.last_name }}</h6>
+        <p class="text-muted small">{{ request.user.email }}</p>
+    </div>
+    
+    <div class="list-group list-group-flush">
+        <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'overview' %}active bg-primary text-white{% endif %}">
+            <i class="fa fa-th-large me-3"></i> Tổng quan
+        </a>
+        
+        <a href="{% url 'user_orders' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'orders' %}active bg-primary text-white{% endif %}">
+            <i class="fa fa-shopping-bag me-3"></i> Đơn mua
+        </a>
+        
+        <a href="{% url 'address_list' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'addresses' %}active bg-primary text-white{% endif %}">
+            <i class="fa fa-map-marker-alt me-3"></i> Sổ địa chỉ
+        </a>
+        
+        <a href="{% url 'logout' %}" class="list-group-item list-group-item-action py-3 text-danger">
+            <i class="fa fa-sign-out-alt me-3"></i> Đăng xuất
+        </a>
+    </div>
+</div>

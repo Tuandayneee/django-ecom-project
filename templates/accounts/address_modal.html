@@ -1,13 +1,8 @@
-{% load static %}
-
 <div class="modal fade" id="addAddressModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      
       <div class="modal-header bg-light">
-        <h5 class="modal-title fw-bold text-primary">
-            <i class="fa fa-map-marker-alt me-2"></i>Thêm địa chỉ mới
-        </h5>
+        <h5 class="modal-title fw-bold text-primary">Thêm địa chỉ mới</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       
@@ -18,11 +13,11 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Họ và tên</label>
-                    <input type="text" name="recipient_name" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required>
+                    <input type="text" name="recipient_name" class="form-control" required placeholder="Nguyễn Văn A">
                 </div>
                 <div class="col-md-6 mt-3 mt-md-0">
                     <label class="form-label fw-bold">Số điện thoại</label>
-                    <input type="text" name="phone" class="form-control" placeholder="Ví dụ: 0912345678" required>
+                    <input type="text" name="phone" class="form-control" required placeholder="0912345678">
                 </div>
             </div>
 
@@ -45,58 +40,29 @@
                         </select>
                     </div>
                 </div>
-                
                 <input type="hidden" name="province_id" id="province_id">
                 <input type="hidden" name="district_id" id="district_id">
                 <input type="hidden" name="ward_code" id="ward_code">
-                
                 <input type="hidden" name="city" id="full_address_str"> 
             </div>
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Địa chỉ cụ thể</label>
-                <textarea name="address_line" class="form-control" rows="2" placeholder="Số nhà, ngõ, tên đường, tòa nhà..." required></textarea>
+                <textarea name="address_line" class="form-control" rows="2" required placeholder="Số nhà, ngõ, đường..."></textarea>
             </div>
 
             <div class="form-check mb-3">
                 <input type="checkbox" name="is_default" class="form-check-input" id="checkDefault">
-                <label class="form-check-label cursor-pointer" for="checkDefault">Đặt làm địa chỉ mặc định</label>
+                <label class="form-check-label" for="checkDefault">Đặt làm địa chỉ mặc định</label>
             </div>
             
-            <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+            <input type="hidden" name="next" value="{{ next_url|default:'' }}">
         </div>
-
-        <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
           <button type="submit" class="btn btn-primary px-4">Lưu địa chỉ</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Logic ghép chuỗi địa chỉ từ 3 dropdown vào input ẩn name="city"
-        const updateAddressStr = () => {
-            const p = document.getElementById("province");
-            const d = document.getElementById("district");
-            const w = document.getElementById("ward");
-            
-            // Lấy text hiển thị thay vì value ID
-            const pName = p.options[p.selectedIndex]?.text;
-            const dName = d.options[d.selectedIndex]?.text;
-            const wName = w.options[w.selectedIndex]?.text;
-            
-            if (pName && dName && wName && pName !== '-- Chọn --') {
-                document.getElementById("full_address_str").value = `${wName}, ${dName}, ${pName}`;
-            }
-        };
-        
-        // Gắn sự kiện change cho dropdown Phường/Xã
-        const wardSelect = document.getElementById("ward");
-        if(wardSelect) {
-             wardSelect.addEventListener("change", updateAddressStr);
-        }
-    });
-</script>

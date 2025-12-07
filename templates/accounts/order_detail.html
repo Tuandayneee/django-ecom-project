@@ -1,0 +1,276 @@
+{% extends "base/base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block start %}
+
+<style>
+    .track {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        position: relative;
+        padding: 20px 0;
+    }
+
+    .track::before {
+        content: '';
+        position: absolute;
+        top: 30px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #ddd;
+        z-index: 1;
+    }
+
+    .track .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .track .step .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        border: 2px solid #ddd;
+        color: #999;
+        margin: 0 auto 10px;
+        font-size: 18px;
+    }
+
+    .track .step.active .icon {
+        background: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+
+    .track .step .text {
+        display: block;
+        font-weight: 500;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .track .step.active .text {
+        color: #007bff;
+        font-weight: 600;
+    }
+</style>
+
+
+
+<section class="section-content padding-y bg-light" style="min-height: 80vh">
+    <div class="container">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1 fw-bold text-dark">Chi tiết đơn hàng</h4>
+                <p class="text-muted mb-0">
+                    Mã đơn: <span class="text-primary fw-bold">#{{ order.order_number }}</span> 
+                    <span class="mx-2">|</span> 
+                    Ngày đặt: {{ order.created_at|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+            <a href="{% url 'user_orders' %}" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Quay lại
+            </a>
+        </div>
+
+        <div class="row">
+            
+            <div class="col-lg-3 d-none d-lg-block">
+                {% include "includes/user_sidebar.html" with active_tab="orders" %}
+            </div>
+
+            <main class="col-lg-9">
+                
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body px-5 py-4">
+                        {% if order.status == 'Cancelled' %}
+                            <div class="alert alert-danger text-center mb-0">
+                                <i class="fa fa-times-circle fa-2x mb-2"></i>
+                                <h5>Đơn hàng đã bị hủy</h5>
+                                <p class="mb-0">Vui lòng liên hệ CSKH nếu bạn cần hỗ trợ thêm.</p>
+                            </div>
+                        {% else %}
+                            <div class="track">
+                                <div class="step active">
+                                    <span class="icon"><i class="fa fa-check"></i></span>
+                                    <span class="text">Đã đặt hàng</span>
+                                </div>
+                                
+                                <div class="step {% if order.status == 'Accepted' or order.status == 'paid' or order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+                                    <span class="icon"><i class="fa fa-user-check"></i></span>
+                                    <span class="text">Đã xác nhận</span>
+                                </div>
+                                
+                                <div class="step {% if order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+                                    <span class="icon"><i class="fa fa-truck"></i></span>
+                                    <span class="text">Đang giao</span>
+                                </div>
+                                
+                                <div class="step {% if order.status == 'Completed' %}active{% endif %}">
+                                    <span class="icon"><i class="fa fa-box-open"></i></span>
+                                    <span class="text">Đã giao</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom">
+                                <h6 class="mb-0 text-center text-primary fw-bold">
+                                    <i class="fa fa-map-marker-alt me-2"></i>Địa chỉ nhận hàng
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <h6 class="fw-bold">{{ order.full_name }}</h6>
+                                <p class="mb-1 text-muted small"><i class="fa fa-phone me-1"></i> {{ order.phone }}</p>
+                                <p class="mb-0 text-muted small"><i class="fa fa-home me-1"></i> {{ order.address }}, {{ order.city }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom">
+                                <h6 class="mb-0 text-center text-primary fw-bold">
+                                    <i class="fa fa-credit-card me-2"></i>Thông tin thanh toán
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <span class="text-muted small d-block mb-1">Phương thức:</span>
+                                    <span class="fw-bold text-uppercase">
+                                        {% if order.payment %}
+                                            {{ order.payment.payment_method }}
+                                        {% else %}
+                                            COD
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-muted small d-block mb-1">Trạng thái:</span>
+                                    
+                                    {# --- LOGIC HIỂN THỊ TRẠNG THÁI THANH TOÁN --- #}
+                                    {% if order.payment.payment_method == 'COD' or order.payment.payment_method == 'cod' %}
+                                        {% if order.status == 'Completed' %}
+                                            <span class="badge bg-success rounded-pill"><i class="fa fa-check"></i> Đã thanh toán</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary rounded-pill"><i class="fa fa-clock"></i> Thanh toán khi nhận</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-success rounded-pill"><i class="fa fa-check"></i> Đã thanh toán</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom">
+                                <h6 class="mb-0 text-center text-primary fw-bold">
+                                    <i class="fa fa-shopping-bag me-2"></i>Tổng tiền
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="mb-2">
+                                    <p class="text-muted small mb-1">Tổng tiền hàng</p>
+                                    <p class="fw-bold">{{ order.order_total|intcomma }} đ</p>
+                                </div>
+                                <div class="mb-2">
+                                    <p class="text-muted small mb-1">Phí vận chuyển</p>
+                                    <p class="fw-bold text-success">
+                                        {% if order.shipping_fee > 0 %} + {{ order.shipping_fee|intcomma }} đ {% else %} Miễn phí {% endif %}
+                                    </p>
+                                </div>
+                                {% if order.coupon_discount > 0 %}
+                                <div class="mb-2">
+                                    <p class="text-muted small mb-1">Giảm giá</p>
+                                    <p class="fw-bold text-danger">- {{ order.coupon_discount|intcomma }} đ</p>
+                                </div>
+                                {% endif %}
+                                <hr class="my-2">
+                                <div>
+                                    <p class="text-muted small mb-1">Tổng cộng</p>
+                                    <h5 class="mb-0 fw-bold text-primary">{{ order.grand_total|intcomma }} đ</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom">
+                        <h6 class="mb-0 text-center text-primary fw-bold">
+                            <i class="fa fa-list me-2"></i>Danh sách sản phẩm
+                        </h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle mb-0">
+                            <thead class="bg-light text-secondary small text-uppercase">
+                                <tr>
+                                    <th class="ps-4" style="width: 50%">Sản phẩm</th>
+                                    <th class="text-center">Đơn giá</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-end pe-4">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.order_products.all %}
+                                <tr class="border-bottom">
+                                    <td class="ps-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0">
+                                                {% if item.product.product_images.first %}
+                                                    <img src="{{ item.product.product_images.first.image.url }}" 
+                                                         class="rounded border" 
+                                                         style="width: 70px; height: 70px; object-fit: cover;">
+                                                {% else %}
+                                                    <div class="rounded border bg-light d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                                        <i class="fa fa-image text-muted"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="mb-1">
+                                                    <a href="{{ item.product.get_url }}" class="text-dark text-decoration-none fw-bold">
+                                                        {{ item.product.product_name }}
+                                                    </a>
+                                                </h6>
+                                                <p class="text-muted small mb-0">
+                                                    {% if item.variant.color %} {{ item.variant.color.color_name }} {% endif %}
+                                                    {% if item.variant.color and item.variant.size %} | {% endif %}
+                                                    {% if item.variant.size %} {{ item.variant.size.size_name }} {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center text-muted">{{ item.product_price|intcomma }} đ</td>
+                                    <td class="text-center fw-bold">x{{ item.quantity }}</td>
+                                    <td class="text-end pe-4 fw-bold text-dark">{{ item.total_price|intcomma }} đ</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

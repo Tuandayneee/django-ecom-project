@@ -1,0 +1,82 @@
+{% extends "base/base.html" %}
+{% load humanize %}
+
+{% block start %}
+<section class="section-content padding-y bg-light" style="min-height: 80vh;">
+    <div class="container">
+        <div class="row">
+            
+            <div class="col-md-3">
+                {% include "includes/user_sidebar.html" with active_tab="orders" %}
+            </div>
+
+            <main class="col-md-9">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0">Lịch sử mua hàng</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Mã đơn</th>
+                                        <th>Ngày đặt</th>
+                                        <th>Sản phẩm</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr>
+                                        <td class="ps-4 fw-bold">
+                                            <a href="{% url 'order_detail' order.uid %}}" class="text-decoration-none">
+                                                #{{ order.order_number|slice:":8" }}
+                                            </a>
+                                        </td>
+                                        <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% with first_item=order.order_products.first %}
+                                                {% if first_item %}
+                                                    {{ first_item.product.product_name }}
+                                                    {% if order.order_products.count > 1 %}
+                                                        <span class="text-muted small">(+{{ order.order_products.count|add:"-1" }} sp khác)</span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                        <td class="fw-bold">{{ order.order_total|intcomma }} đ</td>
+                                        <td>
+                                            {% if order.status == 'Pending' %}
+                                                <span class="badge bg-warning text-dark">Chờ xử lý</span>
+                                            {% elif order.status == 'paid' or order.status == 'shipped' %}
+                                                <span class="badge bg-success">Hoàn thành</span>
+                                            {% elif order.status == 'cancelled' %}
+                                                <span class="badge bg-danger">Đã hủy</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="{% url 'order_detail' order.uid %}" class="btn btn-outline-primary btn-sm">Xem</a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="fa fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">Bạn chưa có đơn hàng nào.</p>
+                                            <a href="{% url 'home' %}" class="btn btn-primary">Mua sắm ngay</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</section>
+{% endblock %}
