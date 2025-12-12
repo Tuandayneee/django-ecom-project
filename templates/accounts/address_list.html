@@ -3,7 +3,7 @@
 
 {% block start %}
 
-<link rel="stylesheet" href="{% static 'css/address_form.css' %}">
+
 
 <section class="section-content padding-y bg-light" style="min-height: 80vh;">
     <div class="container">
@@ -131,5 +131,5 @@
 <style>
     .width-20 { width: 20px; text-align: center; }
 </style>
-
+{% include "accounts/address_form.html" with next_url="address_list" %}
 {% endblock %}

@@ -220,6 +220,7 @@
                 <input type="text" name="first_name" placeholder="Họ (First Name)" required />
                 <input type="text" name="last_name" placeholder="Tên (Last Name)" required />
                 <input type="email" name="email" placeholder="Email" required />
+                <input type="phone" name="phone" placeholder="Phone_number" required />
                 <input type="password" name="password" placeholder="Mật khẩu" required />
                 
                 <button type="submit">Đăng Ký</button>
@@ -236,7 +237,7 @@
                 
                 <input type="email" name="email" placeholder="Email" required />
                 <input type="password" name="password" placeholder="Mật khẩu" required />
-                <a href="#">Quên mật khẩu?</a>
+                <a href="{% url 'reset_password' %}">Quên mật khẩu?</a>
                 
                 <button type="submit">Đăng Nhập</button>
             </form>
@@ -265,22 +266,17 @@
     const registerBtn = document.getElementById('register');
     const loginBtn = document.getElementById('login');
 
-    // Bấm nút Đăng ký -> Thêm class active (Trượt sang trái)
+   
     registerBtn.addEventListener('click', () => {
         container.classList.add("active");
     });
 
-    // Bấm nút Đăng nhập -> Xóa class active (Trượt về phải)
+    
     loginBtn.addEventListener('click', () => {
         container.classList.remove("active");
     });
 
-    // --- SENIOR LOGIC: GIỮ TRẠNG THÁI KHI CÓ LỖI ---
-    // Nếu người dùng đăng ký lỗi (ví dụ email trùng), trang reload lại.
-    // Mặc định nó sẽ hiện form Login. Ta cần JS tự động chuyển sang form Register để hiện lỗi.
-    
-    // Kiểm tra URL hiện tại hoặc context từ Django để biết đang ở view nào
-    // Cách đơn giản: Nếu URL là /register/ hoặc có lỗi trong form register
+   
     {% if request.path == '/accounts/register/' or 'register' in request.path %}
         container.classList.add("active");
     {% endif %}

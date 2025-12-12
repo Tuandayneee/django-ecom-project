@@ -1,6 +1,8 @@
 {% extends 'base/base.html' %} 
 {% load static %}
-{% load humanize %} {% block start %}
+{% load humanize %} 
+
+{% block start %}
 <div class="container mt-5 mb-5">
   <h2 class="mb-4 fw-bold">Giỏ hàng của bạn</h2>
 
@@ -13,9 +15,9 @@
             <thead class="bg-light">
               <tr>
                 <th class="ps-4">Sản phẩm</th>
-                <th>Giá</th>
+                <th>Giá đơn vị</th>
                 <th>Số lượng</th>
-                <th>Tổng</th>
+                <th>Thành tiền</th>
                 <th></th>
               </tr>
             </thead>
@@ -25,43 +27,60 @@
                 <td class="ps-4">
                   <div class="d-flex align-items-center">
                     <div style="width: 80px; height: 80px; flex-shrink: 0" class="me-3 position-relative">
-                      {% with image=item.variant.product.product_images.first %}
-                      {% if image %}
-                      <img src="{{ image.image.url }}" class="img-fluid rounded border" 
-                           style="width: 100%; height: 100%; object-fit: cover" />
-                      {% else %}
-                      <img src="https://via.placeholder.com/80" class="img-fluid rounded border" />
-                      {% endif %} 
-                      {% endwith %}
+                        {% if item.variant.image %}
+                            <img src="{{ item.variant.image.url }}" class="img-fluid rounded border" 
+                                 style="width: 100%; height: 100%; object-fit: cover" />
+                        {% elif item.variant.product.product_images.first %}
+                            <img src="{{ item.variant.product.product_images.first.image.url }}" class="img-fluid rounded border" 
+                                 style="width: 100%; height: 100%; object-fit: cover" />
+                        {% else %}
+                            <img src="https://via.placeholder.com/80" class="img-fluid rounded border" />
+                        {% endif %}
                     </div>
+
                     <div>
                       <a href="{% url 'product' item.variant.product.slug %}" class="text-decoration-none text-dark fw-bold">
                         {{ item.variant.product.product_name }}
                       </a>
                       <div class="small text-muted mt-1">
-                        {% if item.variant.size %} Size: {{ item.variant.size.size_name }} {% endif %}
-                        {% if item.variant.color %} <br /> Màu: {{ item.variant.color.color_name }} {% endif %}
+                        {% if item.variant.sku %}<small>SKU: {{ item.variant.sku }}</small><br>{% endif %}
+                        
+                        {% if item.variant.size %} 
+                            <span class="badge bg-light text-dark border">Size: {{ item.variant.size.size_name }}</span> 
+                        {% endif %}
+                        {% if item.variant.color %} 
+                            <span class="badge bg-light text-dark border">Màu: {{ item.variant.color.color_name }}</span> 
+                        {% endif %}
                       </div>
                     </div>
                   </div>
                 </td>
                 
-                <td>{{ item.variant.price|intcomma }} đ</td>
+                <td>
+                    {% if item.variant.price > 0 %}
+                        {{ item.variant.price|intcomma }} đ
+                    {% else %}
+                        {{ item.variant.product.price|intcomma }} đ
+                    {% endif %}
+                </td>
                 
                 <td>
-                  <div class="input-group input-group-sm" style="width: 100px">
+                  <div class="input-group input-group-sm" style="width: 110px">
                     <button class="btn btn-outline-secondary btn-update" data-action="decrease" data-uid="{{ item.uid }}">-</button>
-                    <input type="text" class="form-control text-center quantity-input" value="{{ item.quantity }}" readonly id="qty-{{ item.uid }}" />
+                    <input type="text" class="form-control text-center quantity-input" 
+                           value="{{ item.quantity }}" readonly 
+                           id="qty-{{ item.uid }}" 
+                           data-old-value="{{ item.quantity }}" />
                     <button class="btn btn-outline-secondary btn-update" data-action="increase" data-uid="{{ item.uid }}">+</button>
                   </div>
                 </td>
                 
-                <td class="fw-bold" id="item-total-{{ item.uid }}">
+                <td class="fw-bold text-primary" id="item-total-{{ item.uid }}">
                   {{ item.get_product_price|intcomma }} đ
                 </td>
                 
                 <td>
-                  <a href="{% url 'remove_item' item.uid %}" class="text-danger" onclick="return confirm('Bạn chắc chắn muốn xóa?')">
+                  <a href="{% url 'remove_item' item.uid %}" class="text-danger" onclick="return confirm('Bạn chắc chắn muốn xóa sản phẩm này?')">
                     <i class="fa-solid fa-trash"></i>
                   </a>
                 </td>
@@ -80,7 +99,7 @@
           
           <div class="d-flex justify-content-between mb-2">
             <span>Tạm tính:</span>
-            <span id="cart-subtotal">{{ subtotal|intcomma }} đ</span>
+            <span id="cart-subtotal" class="fw-bold">{{ subtotal|intcomma }} đ</span>
           </div>
           
           <div class="d-flex justify-content-between mb-2">
@@ -89,16 +108,12 @@
                 {% if shipping_fee > 0 %}
                     + {{ shipping_fee|intcomma }} đ
                     {% if has_default_address %}
-                        <br><small class="text-success" style="font-size: 11px;">(Theo địa chỉ mặc định)</small>
+                        <br><small class="text-success" style="font-size: 11px;">(Địa chỉ mặc định)</small>
                     {% else %}
                         <br><small class="text-muted" style="font-size: 11px;">(Tạm tính)</small>
                     {% endif %}
                 {% else %}
-                    {% if subtotal > 1000000 %}
-                        <span class="text-success">Miễn phí</span>
-                    {% else %}
-                        <span>---</span>
-                    {% endif %}
+                    <span class="text-success">Miễn phí</span>
                 {% endif %}
             </span>
           </div>
@@ -111,17 +126,17 @@
           {% endif %}
           
           {% for coupon in cart.coupons.all %}
-          <small class="text-success d-block mb-1 bg-light p-1 rounded border border-success">
-            <i class="fa-solid fa-tag me-1"></i> Mã <strong>{{ coupon.coupon_code }}</strong>
-            <a href="{% url 'remove_coupon' coupon.id %}" class="text-danger ms-2 float-end" style="text-decoration: none" title="Gỡ mã">&times;</a>
-          </small>
+          <div class="alert alert-success p-2 d-flex justify-content-between align-items-center mb-2">
+            <small><i class="fa-solid fa-tag me-1"></i> Mã: <strong>{{ coupon.coupon_code }}</strong></small>
+            <a href="{% url 'remove_coupon' coupon.id %}" class="text-danger fw-bold text-decoration-none" title="Gỡ mã">&times;</a>
+          </div>
           {% endfor %}
 
           <hr />
           
           <div class="d-flex justify-content-between mb-4">
             <strong class="fs-5">Tổng cộng:</strong>
-            <strong class="fs-5 text-primary" id="cart-total">{{ total|intcomma }} đ</strong>
+            <strong class="fs-5 text-danger" id="cart-total">{{ total|intcomma }} đ</strong>
           </div>
 
           <form method="POST" action="{% url 'apply_coupon' %}" class="mb-3">
@@ -132,7 +147,7 @@
             </div>
           </form>
 
-          <a href="{% url 'orders:checkout' %}" class="btn btn-primary w-100 py-2 fw-bold">Thanh toán ngay</a>
+          <a href="{% url 'orders:checkout' %}" class="btn btn-primary w-100 py-2 fw-bold text-uppercase">Thanh toán ngay</a>
           <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 py-2 mt-2">Tiếp tục mua sắm</a>
         </div>
       </div>
@@ -154,7 +169,7 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     
-    // Hàm định dạng tiền Việt Nam (VD: 100.000 đ)
+    // Hàm định dạng tiền tệ
     function formatCurrency(amount) {
         return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
     }
@@ -166,18 +181,23 @@
         const uid = this.dataset.uid;
         const action = this.dataset.action;
         const input = document.getElementById(`qty-${uid}`);
-        let newQty = parseInt(input.value);
+        
+        let currentQty = parseInt(input.value);
+        let newQty = currentQty;
 
         if (action === "increase") newQty++;
         if (action === "decrease") newQty--;
 
         if (newQty < 1) return; // Không cho giảm dưới 1
 
-        updateCartItem(uid, newQty);
+        // Disable nút trong lúc chờ server trả lời để tránh spam click
+        this.disabled = true;
+        
+        updateCartItem(uid, newQty, input, this);
       });
     });
 
-    function updateCartItem(uid, qty) {
+    function updateCartItem(uid, qty, inputElem, btnElem) {
       fetch("{% url 'update_cart' %}", {
         method: "POST",
         headers: {
@@ -188,41 +208,45 @@
       })
         .then((response) => response.json())
         .then((data) => {
+          // Mở lại nút bấm
+          btnElem.disabled = false;
+
           if (data.status === "Success") {
-            // Cập nhật số lượng
-            document.getElementById(`qty-${uid}`).value = qty;
+            // 1. Cập nhật số lượng mới vào ô input
+            inputElem.value = qty;
+            inputElem.dataset.oldValue = qty; // Lưu lại giá trị chuẩn
             
-            // Cập nhật giá tiền item (dùng hàm format)
-            document.getElementById(`item-total-${uid}`).innerText = formatCurrency(data.item_total);
+            // 2. Cập nhật thành tiền của item đó
+            const itemTotalElem = document.getElementById(`item-total-${uid}`);
+            if (itemTotalElem) itemTotalElem.innerText = formatCurrency(data.item_total);
             
-            // Cập nhật các tổng tiền bên phải
+            // 3. Cập nhật các tổng tiền
             document.getElementById(`cart-subtotal`).innerText = formatCurrency(data.subtotal);
             document.getElementById(`cart-total`).innerText = formatCurrency(data.cart_total);
             
-            // Cập nhật giảm giá (nếu có)
+            // 4. Cập nhật Discount nếu có
             const discountElem = document.getElementById(`cart-discount`);
             if (discountElem) {
               discountElem.innerText = `-${formatCurrency(data.discount)}`;
             }
-            
-            // Cập nhật phí ship (nếu API trả về)
-            const shipElem = document.getElementById(`cart-shipping`);
-            if (shipElem && data.shipping_fee !== undefined) {
-                 if(data.shipping_fee === 0) {
-                     // Nếu bạn muốn hiển thị chữ Miễn phí
-                     // shipElem.innerHTML = '<span class="text-success">Miễn phí</span>';
-                 } else {
-                     // shipElem.innerText = `+ ${formatCurrency(data.shipping_fee)}`;
-                 }
-                 // Lưu ý: Logic update UI ship hơi phức tạp vì có text (Tạm tính), 
-                 // nên đơn giản nhất là reload trang nếu muốn update ship chính xác.
-            }
+
+            // 5. Cập nhật Ship nếu có (Optional)
+            // ... logic ship giữ nguyên ...
 
           } else {
+            // --- XỬ LÝ LỖI (VÍ DỤ: HẾT HÀNG) ---
             alert(data.message || "Lỗi cập nhật giỏ hàng");
+            
+            // Quan trọng: Revert số lượng về giá trị cũ hợp lệ
+            // Ví dụ: Đang là 5, bấm lên 6, server báo kho chỉ còn 5 -> Input quay về 5
+            inputElem.value = inputElem.dataset.oldValue;
           }
         })
-        .catch((err) => console.error(err));
+        .catch((err) => {
+            console.error(err);
+            btnElem.disabled = false;
+            alert("Đã xảy ra lỗi kết nối");
+        });
     }
   });
 </script>

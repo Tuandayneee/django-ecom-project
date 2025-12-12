@@ -10,14 +10,22 @@ class Payment(BaseModel):
         ('VNPay', 'VNPay'),
         ('cod', 'Cash on Delivery'),
     ]
+    class PaymentStatus(models.TextChoices):
+        PENDING = 'Pending', 'Chờ xử lý'
+        COMPLETED = 'Completed', 'Thành công'
+        FAILED = 'Failed', 'Thất bại'
+        REFUNDED = 'Refunded', 'Đã hoàn tiền'
     user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='payments')
     payment_id = models.CharField(max_length=100, unique=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
     amount_paid = models.CharField(max_length=100)
-    status = models.CharField(max_length=100)
+    
+
+    status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
+        
         return self.payment_id
 
 
@@ -37,19 +45,19 @@ class Order(BaseModel):
     payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, blank=True)
     order_number = models.CharField(max_length=20, unique=True)
     
-    # Thông tin nhận hàng
+    
     full_name = models.CharField(max_length=50)
     phone = models.CharField(max_length=50, blank=True)
-    address = models.TextField(blank=True)
+    address_line = models.TextField(blank=True)
     city = models.CharField(max_length=100, blank=True)
 
-    # Chi phí đơn hàng
-    order_total = models.IntegerField(default=0)  
-    shipping_fee = models.IntegerField(default=0) 
-    coupon_discount = models.IntegerField(default=0)  
-    tax = models.IntegerField(default=0)  # Thuế
     
-    # Trạng thái
+    order_total = models.FloatField(default=0)  
+    shipping_fee = models.FloatField(default=0) 
+    coupon_discount = models.FloatField(default=0)  
+    tax = models.IntegerField(default=0)  
+    
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     is_ordered = models.BooleanField(default=False)
 
@@ -58,7 +66,6 @@ class Order(BaseModel):
 
     @property
     def grand_total(self):
-        """Tính tổng tiền cuối cùng = order_total + shipping + tax - coupon_discount"""
         return self.order_total + self.shipping_fee + self.tax - self.coupon_discount
 
     def __str__(self):
@@ -67,15 +74,13 @@ class Order(BaseModel):
 
 class OrderProduct(BaseModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE,related_name='order_products')
-    Payment = models.ForeignKey(Payment, on_delete=models.CASCADE, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
-
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, null=True, blank=True)   
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL,null=True)
+    variant = models.ForeignKey(Variant, on_delete=models.SET_NULL, null=True, blank=True)   
+    product_name = models.CharField(max_length=100)
     quantity = models.IntegerField()
     product_price = models.IntegerField() 
-    ordered = models.BooleanField(default=False)
+    
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -84,4 +89,14 @@ class OrderProduct(BaseModel):
     def total_price(self):
         return self.product_price * self.quantity
     def __str__(self):
-        return self.product.product_name
+        product_name = self.product.product_name if self.product else "Sản phẩm đã xóa"
+        variant_info = str(self.variant) if self.variant else ""
+        return f"{product_name} {variant_info}"
+    def save(self, *args, **kwargs):
+        if not self.product_name and self.product:
+            self.product_name = self.product.product_name
+        if not self.variant_name and self.variant:
+            self.variant_name = str(self.variant)
+        if not self.product_price and self.variant:
+            self.product_price = self.variant.price
+        super().save(*args, **kwargs)

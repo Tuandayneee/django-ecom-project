@@ -4,8 +4,7 @@ from base.models import BaseModel
 from django.utils.text import slugify
 from django.utils import timezone
 from django.db.models import Min
-# --- CÁC MODEL BIẾN THỂ (TEMPLATE) ---
-# Đây là các model "mẫu" để bạn chọn trong Admin
+
 
 class Category(BaseModel):
     category_name = models.CharField(max_length=100)
@@ -21,25 +20,27 @@ class Category(BaseModel):
 
 class ColorVariant(BaseModel):
     color_name = models.CharField(max_length=100)
-    # Không cần slug hay price ở đây
+    
 
     def __str__(self):
         return self.color_name
 
 class SizeVariant(BaseModel):
     size_name = models.CharField(max_length=100)
-    # Không cần slug hay price ở đây
-
     def __str__(self):
         return self.size_name
 
-# --- CÁC MODEL SẢN PHẨM (ĐÃ SỬA KIẾN TRÚC) ---
 
+class Supplier(models.Model):
+    name = models.CharField(max_length=100)
+    contact_person = models.CharField(max_length=100)
+    address = models.TextField(null=True, blank=True)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20)
+    def __str__(self):
+        return self.supplier_name
 class Product(BaseModel):
-    """
-    Model "vỏ bọc" cho sản phẩm.
-    Chỉ chứa thông tin chung (tên, mô tả, category).
-    """
+    
     product_name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, null=True, blank=True)
     category = models.ForeignKey(
@@ -49,14 +50,18 @@ class Product(BaseModel):
         related_name="products"
     )
     product_description = models.TextField(null=True, blank=True)
-    
+    original_price = models.IntegerField(default=0)
+    price = models.IntegerField(default=0)
+    supplier = models.ForeignKey(
+        Supplier, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name="products"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
     @property
     def min_price(self):
-        """
-        Hàm này tự động tìm giá rẻ nhất trong các biến thể (Variant)
-        Ví dụ: Áo có size S (100k), size L (120k) -> Hàm trả về 100k
-        """
-        # self.variants là do related_name="variants" ở model Variant
         result = self.variants.aggregate(Min('price'))
         return result['price__min'] if result['price__min'] is not None else 0
 
@@ -70,13 +75,22 @@ class Product(BaseModel):
 
 class Variant(BaseModel):
     
-    variant_name = models.CharField(max_length=255, null=True, blank=True)
+    
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     color = models.ForeignKey(ColorVariant, on_delete=models.SET_NULL, null=True, blank=True)
     size = models.ForeignKey(SizeVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    stock = models.IntegerField(default=0)
     
+    sku = models.CharField(max_length=100, unique=True)
+    original_price = models.IntegerField(default=0)
     price = models.IntegerField(default=0)
-    stock = models.PositiveIntegerField(default=0, help_text="Số lượng tồn kho")
+    image = models.ImageField(upload_to="products/variants", null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    @property
+    def get_price(self):
+        if self.price>0:
+            return self.price
+        return self.product.min_price
 
     def __str__(self):
         parts = [self.product.product_name]
@@ -87,25 +101,35 @@ class Variant(BaseModel):
         return " - ".join(parts)
 
     def save(self, *args, **kwargs):
-        # Tự động tạo tên (nếu cần)
-        if not self.variant_name and self.color and self.size:
-            self.variant_name = f"{self.color.color_name} - {self.size.size_name}"
-        super(Variant, self).save(*args, **kwargs)
+        if not self.sku:
+            
+            slug_product = slugify(self.product.product_name)
+            slug_color = slugify(self.color.color_name)
+            slug_size = slugify(self.size.size_name)
+            
+            
+            self.sku = f"{slug_product}-{slug_color}-{slug_size}".upper()
+            
+        super().save(*args, **kwargs)
 
 
 class ProductImage(BaseModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_images")
     image = models.ImageField(upload_to="product")
+    is_thumbnail = models.BooleanField(default=False)
+    
 
-    def __str__(self):
-        return f"Image for {self.product.product_name}"
-
-# --- Model COUPON (Không thay đổi) ---
 class Coupon(models.Model):
     TYPE_CHOICES = (
         ('shipping', 'Free Shipping'),
         ('amount', 'Giảm tiền trực tiếp'),
         ('percent', 'Giảm phần trăm'),
+    )
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
     )
     coupon_code = models.CharField(max_length=50, unique=True, null=True, blank=True)
     discount_price = models.IntegerField(default=100)
@@ -131,3 +155,8 @@ class CouponUsage(models.Model):
 
     class Meta:
         unique_together = ('user', 'coupon')
+
+
+
+    
+

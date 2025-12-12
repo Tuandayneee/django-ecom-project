@@ -122,7 +122,8 @@
         stockDisplay.innerText = `Còn ${variantInfo.stock} sản phẩm`;
         stockDisplay.className = "text-success";
 
-        // Cập nhật link (đảm bảo 'add_to_cart' ở accounts/urls.py)
+        // Cập nhật link (đảm bảo '
+        add_to_cart' ở accounts/urls.py)
         const baseUrl = "{% url 'add_to_cart' product.uid %}";
         addToCartBtn.href = `${baseUrl}?variant=${variantInfo.variant_uid}&quantity=${quantity}`;
 

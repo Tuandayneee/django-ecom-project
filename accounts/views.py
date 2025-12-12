@@ -15,23 +15,22 @@ from orders.models import Order
 from products.models import Variant, Coupon
 from .models import Address, Cart, CartItems, Profile
 
-# =========================================
-# AUTHENTICATION (Đăng ký / Đăng nhập)
-# =========================================
+
 
 def register_page(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email') 
+        phone = request.POST.get('phone')
         password = request.POST.get('password')
         
         if User.objects.filter(username=email).exists():
             messages.error(request, 'Email này đã được sử dụng!')
-            return render(request, 'accounts/login_register.html') # Render lại trang gộp
+            return render(request, 'accounts/login_register.html')
 
         try:
-            user_obj = User.objects.create_user(username=email, email=email, first_name=first_name, last_name=last_name)
+            user_obj = User.objects.create_user(username=email, email=email,phone = phone,  first_name=first_name, last_name=last_name)
             user_obj.set_password(password)
             user_obj.save()
             messages.success(request, 'Đăng ký thành công! Vui lòng đăng nhập.')
@@ -60,9 +59,7 @@ def login_page(request):
         user_obj = authenticate(request, username=email, password=password)
         
         if user_obj is not None:
-            # Kiểm tra email verified (nếu cần)
-            # if not user_obj.profile.is_email_verified: ...
-            
+           
             login(request, user_obj)
             if next_url:
                 return redirect(next_url)
@@ -78,16 +75,14 @@ def logout_view(request):
     return redirect('login')
 
 
-# =========================================
-# CART & COUPON (Giỏ hàng)
-# =========================================
+
 
 @login_required(login_url='login')
 def cart(request):
     try:
         cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
         
-        # SỬ DỤNG HÀM TÍNH TOÁN TỪ UTILS (Đồng bộ với Checkout)
+        
         context = calculate_cart_total(cart_obj, user=request.user)
         
         context['cart'] = cart_obj
@@ -148,7 +143,7 @@ def update_cart(request):
         new_quantity = int(data.get('new_quantity'))
 
         cart_item = get_object_or_404(CartItems, uid=item_uid, cart__user=request.user)
-        
+        item_total_price = 0
         if new_quantity > 0:
             if new_quantity > cart_item.variant.stock:
                 return JsonResponse({
@@ -158,15 +153,17 @@ def update_cart(request):
             
             cart_item.quantity = new_quantity
             cart_item.save()
+            item_total_price = cart_item.get_product_price
         else:
             cart_item.delete()
+            item_total_price = 0
 
         # TÍNH LẠI GIỎ HÀNG BẰNG HÀM CHUẨN
         cart_details = calculate_cart_total(cart_item.cart, user=request.user)
 
         return JsonResponse({
             'status': 'Success',
-            'item_total': cart_item.get_product_price,
+            'item_total': item_total_price,
             'subtotal': cart_details['subtotal'],
             'discount': cart_details['discount'],
             'cart_total': cart_details['total'],
@@ -202,7 +199,7 @@ def apply_coupon(request):
                 messages.error(request, 'Mã giảm giá không hợp lệ.')
                 return redirect('cart')
             
-            # Kiểm tra xem đã dùng loại coupon này chưa
+            
             current_coupons = cart_obj.coupons.all()
             for applied_c in current_coupons:
                 if applied_c.coupon_type == coupon.coupon_type:
@@ -237,13 +234,13 @@ def remove_coupon(request, coupon_id):
 def save_address(request):
     """ Hàm xử lý lưu địa chỉ từ Modal hoặc Form """
     if request.method == 'POST':
-        # FIX: Lấy đúng tên trường từ HTML (recipient_name)
-        full_name = request.POST.get('recipient_name') 
+        
+        full_name = request.POST.get('full_name') 
         phone = request.POST.get('phone')
         city = request.POST.get('city')
         address_line = request.POST.get('address_line')
         
-        # Fix logic Checkbox
+        
         is_default_bool = request.POST.get('is_default') == 'on'
         
         province_id = request.POST.get('province_id')
@@ -255,7 +252,7 @@ def save_address(request):
             
         Address.objects.create(
             user=request.user,
-            full_name=full_name, # Map đúng vào model
+            full_name=full_name, 
             phone=phone,
             city=city,
             address_line=address_line,
@@ -282,9 +279,14 @@ def address_list(request):
 @login_required(login_url='login')
 def add_address(request):
     """ View cho trang thêm địa chỉ riêng biệt (nếu không dùng Modal) """
-    # Có thể tận dụng lại hàm save_address ở trên hoặc giữ logic form cũ
-    # Nhưng khuyến khích dùng save_address để thống nhất logic
-    return redirect('address_list') 
+    form = AddressForm()
+    
+    context = {
+        'form': form,
+        'title': 'Thêm địa chỉ mới'
+    }
+    
+    return render(request, 'accounts/address_form.html', context)
 
 @login_required(login_url='login')
 def edit_address(request, uid):
@@ -335,18 +337,13 @@ def user_dashboard(request):
     
     user = request.user
     orders = Order.objects.filter(user=user).order_by('-created_at')
-
-    # 1. Tính toán số liệu
     total_orders = orders.count()
     
-    # Giả sử status trong Model là: 'Pending', 'paid', 'shipped', 'cancelled'
-    # Bạn chỉnh lại string cho khớp với choices trong model của bạn nhé
+   
     pending_count = orders.filter(status='Pending').count()
     
-    # Coi như 'shipped' hoặc 'paid' là hoàn thành (tùy logic của bạn)
+    
     completed_count = orders.filter(status__in=['shipped', 'paid']).count() 
-
-    # 2. Lấy 5 đơn gần nhất
     recent_orders = orders[:5]
 
     context = {
@@ -356,3 +353,15 @@ def user_dashboard(request):
         'recent_orders': recent_orders,
     }
     return render(request, 'accounts/dashboard.html', context)
+
+
+@login_required(login_url='login')
+def update_avatar(request):
+    if request.method == 'POST':
+        profile = Profile.objects.get(user=request.user)
+        image = request.FILES.get('profile_image')
+        if image:
+            profile.profile_image = image
+            profile.save()
+            messages.success(request, "Cập nhật avatar thành cong.")
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))

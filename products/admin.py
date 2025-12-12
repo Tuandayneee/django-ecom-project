@@ -4,59 +4,77 @@ from .models import (
     ColorVariant, 
     SizeVariant, 
     Product, 
-    Variant, 
+    Variant,
     ProductImage,
-    Coupon
+    Coupon,
+    Supplier
 )
 
-# Đăng ký Category
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone', 'email')
+    search_fields = ('name', 'phone')
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('category_name', 'slug')
     prepopulated_fields = {'slug': ('category_name',)}
 
-# Đăng ký ColorVariant (Đã xóa 'price' khỏi list_display)
 @admin.register(ColorVariant)
 class ColorVariantAdmin(admin.ModelAdmin):
     list_display = ('color_name',)
 
-# Đăng ký SizeVariant (Đã xóa 'price' khỏi list_display)
 @admin.register(SizeVariant)
 class SizeVariantAdmin(admin.ModelAdmin):
     list_display = ('size_name',)
 
-# --- Cấu hình trang Product Admin (QUAN TRỌNG) ---
 
-# Hiển thị các ảnh con bên trong trang Product
+
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
-    extra = 1 # Cho phép thêm 1 ảnh mới mỗi lần
+    extra = 1 
+    readonly_fields = ('image_preview',) 
+    
 
-# Hiển thị các biến thể con bên trong trang Product
-class VariantInline(admin.TabularInline):
+    def image_preview(self, obj):
+        from django.utils.html import mark_safe
+        if obj.image:
+            return mark_safe(f'<img src="{obj.image.url}" width="50" height="50" />')
+        return ""
+
+class VariantInline(admin.TabularInline): 
     model = Variant
-    extra = 1 # Cho phép thêm 1 biến thể mới
-    # Hiển thị các trường quan trọng
-    fields = ('color', 'size', 'price', 'stock', 'variant_name') 
+    extra = 0 
+    fields = ('sku', 'color', 'size', 'original_price', 'price', 'stock', 'image') 
 
-# Đăng ký Product (Đã xóa 'price' khỏi list_display)
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('product_name', 'category', 'slug')
+    list_display = ('product_name', 'category', 'price_range', 'updated_at')
     prepopulated_fields = {'slug': ('product_name',)}
-    # Thêm 2 dòng này để bạn có thể quản lý Ảnh và Biến thể
-    # ngay bên trong trang chi tiết Product. Đây là cách làm chuyên nghiệp.
+    search_fields = ('product_name',)
+    list_filter = ('category',)
+    
+    
     inlines = [ProductImageInline, VariantInline]
 
-# Đăng ký Variant (Model MỚI)
+    
+    def price_range(self, obj):
+        items = obj.items.all() 
+        if items.exists():
+            min_price = min([item.price for item in items])
+            return f"{min_price:,} đ"
+        return "Chưa có giá"
+
+
 @admin.register(Variant)
 class VariantAdmin(admin.ModelAdmin):
-    # Hiển thị các trường quan trọng khi liệt kê tất cả Variant
-    list_display = ('__str__', 'product', 'color', 'size', 'price', 'stock')
-    list_filter = ('product', 'color', 'size') # Thêm bộ lọc
-    search_fields = ('product__product_name', 'variant_name') # Thêm thanh tìm kiếm
 
-# Đăng ký Coupon (Giữ nguyên)
+    list_display = ('product', 'color', 'size', 'sku', 'price', 'stock', 'updated_at')
+    list_filter = ('product', 'color', 'size') 
+    search_fields = ('product__product_name', 'sku') 
+    list_editable = ('price', 'stock') 
+
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ('coupon_code', 'discount_price', 'minimum_amount', 'is_active', 'valid_to')
+    list_display = ('coupon_code', 'category', 'discount_price', 'minimum_amount', 'is_active', 'valid_to')
+    list_filter = ('is_active', 'valid_to')

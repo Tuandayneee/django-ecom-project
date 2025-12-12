@@ -6,7 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from base.emails import send_account_activation_email
 # Import gọn gàng hơn
-from products.models import Coupon, Variant 
+from products.models import Coupon, Product, Variant 
 from django.db.models import Sum
 
 
@@ -45,10 +45,6 @@ class CartItems(BaseModel):
 
     @property
     def get_product_price(self):
-        """
-        Tính tổng tiền của dòng item này (Giá variant * Số lượng)
-        Đã đổi tên thành 'get_product_price' để khớp với views và template
-        """
         if self.variant:
             return self.variant.price * self.quantity
         return 0 
@@ -61,11 +57,11 @@ class CartItems(BaseModel):
 
 class Address(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
-    full_name = models.CharField(max_length=100) # Tên người nhận
+    full_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
-    address_line = models.TextField() # Số nhà, tên đường
+    address_line = models.TextField() 
     city = models.CharField(max_length=100)
-    is_default = models.BooleanField(default=False) # Đặt làm mặc định
+    is_default = models.BooleanField(default=False) 
     province_id = models.IntegerField(null=True, blank=True)
     district_id = models.IntegerField(null=True, blank=True)
     ward_code = models.CharField(max_length=50, null=True, blank=True)
@@ -79,7 +75,7 @@ class Address(BaseModel):
         return f"{self.full_name} - {self.address_line}"
 
 
-# --- SIGNALS ---
+
 @receiver(post_save, sender=User)
 def send_email_token(sender, instance, created, **kwargs):
     try:
@@ -92,3 +88,22 @@ def send_email_token(sender, instance, created, **kwargs):
         print(e)
 
 
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    rating = models.IntegerField()
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f"{self.user.username} - {self.product.product_name} - {self.rating}★"
+    
+
+def get_user_avatar(self):
+    try:
+        if self.profile.profile_image:
+            return self.profile.profile_image.url
+    except:
+        pass
+    return None
+
+User.add_to_class('avatar', property(get_user_avatar))

@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     'home',
     'orders',
     'django.contrib.humanize',
+    'image_uploader_widget',
 ]
 
 MIDDLEWARE = [
@@ -101,6 +103,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        'NAME': 'accounts.validators.ComplexPassWordValidator',
     },
 ]
 
@@ -162,7 +167,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
-DEFAULT_SHIPPING_FEE = 15
+
 
 
 VNPAY_TMN_CODE = 'SIXDZGUD'
@@ -170,3 +175,84 @@ VNPAY_HASH_SECRET_KEY = 'B159DXK3140FGOFHWGYJ29B8J77IVVOZ'
 
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
 VNPAY_RETURN_URL = 'http://127.0.0.1:8000/payment_return/'
+
+
+WAREHOUSE_COORDS = (20.8904460, 105.7951300)
+DEFAULT_SHIPPING_FEE = 30000
+GHN_TOKEN = '4144ae8c-d3d8-11f0-9ba9-de592a7a61f0'
+GHN_SHOP_ID = 6145477
+GHN_API = 'https://online-gateway.ghn.vn/shiip/public-api/master-data'
+
+
+
+# ecom/settings.py
+
+JAZZMIN_SETTINGS = {
+    
+    "site_title": "Quản trị Web E-Shop", 
+    "site_header": "E-Shop Admin",   
+    "site_brand": "E-Shop",          
+    "site_logo": "images/logo-64.png",               
+    "login_logo": "images/admin_login_logo.jpg",              
+    
+    
+    "welcome_sign": "Chào mừng quay trở lại!",
+    "copyright": "E-Shop Ltd",
+    
+   
+    "user_avatar": "avatar",
+
+    
+    "topmenu_links": [
+        {"name": "Trang chủ",  "url": "home", "permissions": ["auth.view_user"]},
+        {"name": "Vào Shop", "url": "/", "new_window": True}, 
+    ],
+
+    
+    "order_with_respect_to": ["orders", "products", "accounts", "auth"],
+
+   
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        
+        
+        "products.Product": "fas fa-box-open",
+        "products.Category": "fas fa-tags",
+        "products.Variant": "fas fa-layer-group",
+        "orders.Order": "fas fa-shopping-cart",
+        "orders.Coupon": "fas fa-ticket-alt",
+    },
+    
+    
+    "show_ui_builder": True, 
+}
+
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar": "navbar-dark navbar-primary",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "theme": "default", 
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}

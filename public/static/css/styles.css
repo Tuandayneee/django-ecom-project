@@ -313,3 +313,27 @@ body {
   object-fit: cover;
   object-position: center;
 }
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50% !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: all 0.3s ease-in-out;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.group-avatar:hover .avatar-overlay {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

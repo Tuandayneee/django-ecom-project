@@ -1,35 +1,30 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+import json
 from datetime import datetime
 
 # Import Models
 from accounts.models import Cart, Address
 from .models import Order, OrderProduct, Payment
 from products.models import Variant
+# Import hàm tính tiền chung
 from accounts.utils import calculate_cart_total
 
-# --- 1. HÀM HELPER TÍNH TOÁN TIỀN (Dùng chung) ---
-# orders/views.py
-
-
-
+# --- 1. VIEW THANH TOÁN (CHECKOUT) ---
 @login_required(login_url='login')
 def checkout(request):
     try:
-        # Lấy giỏ hàng chưa thanh toán
+        # Lấy giỏ hàng
         cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-        
-        # Gọi hàm tính tiền ở trên
+        # Tính toán chi phí
         cart_data = calculate_cart_total(cart_obj, user=request.user)
-        
     except Cart.DoesNotExist:
         return redirect('home')
 
-    # Lấy danh sách địa chỉ để hiển thị
     addresses = Address.objects.filter(user=request.user).order_by('-is_default')
 
-    # Xử lý khi bấm nút "Đặt hàng"
     if request.method == 'POST':
         selected_address_uid = request.POST.get('selected_address')
         payment_method = request.POST.get('payment_method')
@@ -38,39 +33,35 @@ def checkout(request):
             messages.warning(request, "Vui lòng chọn địa chỉ giao hàng.")
             return redirect('orders:checkout')
 
-        # Lưu thông tin vào session để dùng cho bước sau
-        request.session['shipping_address_uid'] = selected_address_uid
-        request.session['order_total_data'] = {
-            'grand_total': cart_data['total'],
-            'shipping_fee': cart_data['shipping_fee']
-        }
-
-        # --- ĐIỀU HƯỚNG THANH TOÁN ---
+        # Xử lý thanh toán
         if payment_method == 'vnpay':
             return redirect('orders:vnpay_payment') 
-        
         elif payment_method == 'cod':
-            return handle_cod_payment(request, cart_obj, cart_data, selected_address_uid)
+            # Gọi hàm xử lý COD
+            return handle_cod_payment(request, cart_obj, selected_address_uid)
 
     context = {
-        'cart_data': cart_data, # Truyền cục dữ liệu đã tính xuống HTML
+        'cart_data': cart_data,
         'addresses': addresses,
     }
     return render(request, 'orders/checkout.html', context)
 
 
-# --- 3. XỬ LÝ THANH TOÁN COD ---
-def handle_cod_payment(request, cart_obj, cart_data, address_uid):
+# --- 2. XỬ LÝ THANH TOÁN COD ---
+def handle_cod_payment(request, cart_obj, address_uid):
     print(f"--- BẮT ĐẦU XỬ LÝ COD ---")
-    print(f"Address UID: {address_uid}")
     
     if not address_uid:
         messages.error(request, "Lỗi: Không tìm thấy địa chỉ giao hàng.")
         return redirect('orders:checkout')
 
     try:
-        # Lấy địa chỉ
         address = Address.objects.get(uid=address_uid)
+        
+        # QUAN TRỌNG: Tính toán lại cart_data dựa trên địa chỉ đã chọn
+        # Để đảm bảo số tiền lưu vào DB là chính xác nhất tại thời điểm đặt
+        cart_data = calculate_cart_total(cart_obj, user=request.user, selected_address=address)
+        
         timestamp = datetime.now().strftime('%H%M%S')
         
         # 1. Tạo Payment
@@ -81,7 +72,6 @@ def handle_cod_payment(request, cart_obj, cart_data, address_uid):
             amount_paid=str(cart_data['total']),
             status='Pending'
         )
-        print("-> Đã tạo Payment")
 
         # 2. Tạo Order
         order = Order.objects.create(
@@ -99,26 +89,21 @@ def handle_cod_payment(request, cart_obj, cart_data, address_uid):
             status='Pending',
             is_ordered=True
         )
-        print(f"-> Đã tạo Order: {order.order_number}")
 
-        # 3. Chuyển sản phẩm
+        # 3. Chuyển sản phẩm & Trừ kho
         for item in cart_data['cart_items']:
             variant = item.variant
             
-            # Kiểm tra tồn kho
+            # Check tồn kho
             if variant.stock < item.quantity:
-                print(f"-> LỖI TỒN KHO: {variant.product.product_name}")
                 messages.error(request, f"Sản phẩm {variant.product.product_name} không đủ số lượng.")
-                # Xóa Order và Payment vừa tạo để tránh rác
                 order.delete()
                 payment.delete()
                 return redirect('cart')
 
-            # Trừ kho
             variant.stock -= item.quantity
             variant.save()
 
-            # Tạo OrderProduct
             OrderProduct.objects.create(
                 order=order,
                 user=request.user,
@@ -130,24 +115,55 @@ def handle_cod_payment(request, cart_obj, cart_data, address_uid):
                 ordered=True
             )
         
-        print("-> Đã tạo xong OrderProduct")
-
-        # 4. Xóa giỏ hàng (QUAN TRỌNG)
-        
+        # 4. Xóa giỏ hàng
         cart_obj.cart_items.all().delete() 
         cart_obj.coupons.clear() 
         cart_obj.save()
         
-        print("-> Đã clear giỏ hàng thành công")
-
         messages.success(request, "Đặt hàng thành công!")
         return redirect('orders:order_success', order_uid=order.uid)
 
     except Exception as e:
-        print(f"--- LỖI CRITICAL COD: {e} ---")
-        messages.error(request, f"Lỗi hệ thống: {e}")
+        print(f"--- LỖI COD: {e} ---")
+        messages.error(request, "Có lỗi xảy ra khi xử lý đơn hàng.")
         return redirect('orders:checkout')
+
+# --- 3. TRANG THÀNH CÔNG ---
 @login_required
 def order_success(request, order_uid):
     order = get_object_or_404(Order, uid=order_uid)
-    return render(request, 'orders/success.html', {'order': order})
+    # Lấy danh sách sản phẩm (Dùng related_name hoặc _set)
+    order_items = order.order_products.all()
+    
+    context = {
+        'order': order,
+        'order_items': order_items,
+    }
+    return render(request, 'orders/success.html', context)
+
+# --- 4. API CẬP NHẬT PHÍ SHIP (AJAX) ---
+def update_shipping_fee(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            address_uid = data.get('address_uid')
+            
+            address = Address.objects.get(uid=address_uid)
+            cart_obj = Cart.objects.get(user=request.user, is_paid=False)
+
+            # Tính lại với địa chỉ mới chọn
+            cart_data = calculate_cart_total(cart_obj, user=request.user, selected_address=address)
+            
+            return JsonResponse({
+                'status': 'success',
+                'shipping_fee': cart_data['shipping_fee'],
+                'total': cart_data['total'],
+                'subtotal': cart_data['subtotal'],
+                'discount': cart_data['discount'],
+            })
+        except Address.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Địa chỉ không tồn tại.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            
+    return JsonResponse({'status': 'error'}, status=400)

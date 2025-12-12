@@ -57,9 +57,7 @@ class AddToCartAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        """
-        Thêm sản phẩm vào giỏ hàng qua API
-        """
+        
         try:
             variant_uid = request.data.get('variant_uid')
             quantity = int(request.data.get('quantity', 1))
@@ -70,7 +68,7 @@ class AddToCartAPIView(APIView):
             variant = get_object_or_404(Variant, uid=variant_uid)
             cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
 
-            # Logic thêm vào giỏ
+            
             cart_item, created = CartItems.objects.get_or_create(
                 cart=cart_obj,
                 variant=variant
@@ -81,13 +79,13 @@ class AddToCartAPIView(APIView):
             else:
                 cart_item.quantity += quantity
             
-            # Check tồn kho
+            
             if cart_item.quantity > variant.stock:
                 return Response({'error': f'Chỉ còn {variant.stock} sản phẩm'}, status=status.HTTP_400_BAD_REQUEST)
 
             cart_item.save()
 
-            # Tính lại giỏ hàng để trả về số liệu mới nhất
+            
             cart_data = calculate_cart_total(cart_obj, user=request.user)
 
             return Response({
