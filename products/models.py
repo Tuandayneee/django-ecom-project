@@ -52,6 +52,7 @@ class Product(BaseModel):
     product_description = models.TextField(null=True, blank=True)
     original_price = models.IntegerField(default=0)
     price = models.IntegerField(default=0)
+    sold_count = models.IntegerField(default=0)
     supplier = models.ForeignKey(
         Supplier, 
         on_delete=models.SET_NULL, 
@@ -70,6 +71,11 @@ class Product(BaseModel):
             self.slug = slugify(self.product_name)
         super(Product, self).save(*args, **kwargs)
 
+
+    def get_percentage_off(self):
+        if self.original_price > 0 and self.price < self.original_price:
+            discount = (self.original_price - self.price) / self.original_price * 100
+            return int(discount)
     def __str__(self):
         return self.product_name
 
@@ -81,7 +87,7 @@ class Variant(BaseModel):
     size = models.ForeignKey(SizeVariant, on_delete=models.SET_NULL, null=True, blank=True)
     stock = models.IntegerField(default=0)
     
-    sku = models.CharField(max_length=100, unique=True)
+    sku = models.CharField(max_length=100, unique=True,blank=True)
     original_price = models.IntegerField(default=0)
     price = models.IntegerField(default=0)
     image = models.ImageField(upload_to="products/variants", null=True, blank=True)
@@ -92,6 +98,10 @@ class Variant(BaseModel):
             return self.price
         return self.product.min_price
 
+    @property
+    def variant_name(self):
+        
+        return f"{self.product.product_name} - {self.color.color_name if self.color else ''} - {self.size.size_name if self.size else ''}"
     def __str__(self):
         parts = [self.product.product_name]
         if self.color:
@@ -117,8 +127,9 @@ class ProductImage(BaseModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_images")
     image = models.ImageField(upload_to="product")
     is_thumbnail = models.BooleanField(default=False)
-    
-
+    variant = models.ForeignKey(Variant, on_delete=models.SET_NULL, null=True, blank=True)
+    def __str__(self):
+        return self.product.product_name
 class Coupon(models.Model):
     TYPE_CHOICES = (
         ('shipping', 'Free Shipping'),

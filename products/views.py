@@ -1,18 +1,25 @@
 from django.shortcuts import render
 from .models import Product,  Variant
+from accounts.models import Review
 from django.http import Http404 
 import json
 from django.db.models import Min  # <-- QUAN TRỌNG: Import Min
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg
 def get_product(request, slug):
     try:
-        product = Product.objects.get(slug=slug)
+        product = get_object_or_404(Product, slug=slug)
         variants = product.variants.all() 
         available_colors = set()
         available_sizes = set()
         variants_map = {}
-
+        original_price = product.original_price
+        count = product.reviews.count()
+        avg_data = product.reviews.aggregate(avg_rating=Avg('rating'))
+        average = avg_data['avg_rating'] or 0
+        sold_count = product.sold_count
+        reviews = product.reviews.all().order_by('-created_at')
         for variant in variants:
             if variant.color:
                 available_colors.add(variant.color)
@@ -24,9 +31,11 @@ def get_product(request, slug):
             key = f"{color_uid}-{size_uid}"
             
             variants_map[key] = {
-                'price': variant.price,
+                'price': float(variant.price) if variant.price else original_price,
+                'original_price': float(variant.original_price) if variant.original_price>0 else float(variant.price),
                 'stock': variant.stock,
-                'variant_uid': str(variant.uid) 
+                'variant_uid': str(variant.uid) ,
+                'image': variant.image.url if variant.image else None
             }
 
        
@@ -38,10 +47,16 @@ def get_product(request, slug):
 
         context = {
             'product': product,
+            'reviews': reviews,
             'default_price': default_price, 
             'available_colors': list(available_colors),
             'available_sizes': list(available_sizes),
-            'variants_map_json': json.dumps(variants_map)
+            'variants_map_json': json.dumps(variants_map),
+            'original_price' : original_price,
+            'review_count' : count,
+            'average' : average,
+            'sold_count' :sold_count,
+            
         }
         
         return render(request, 'product/product.html', context=context)

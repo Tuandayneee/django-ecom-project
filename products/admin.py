@@ -59,7 +59,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     
     def price_range(self, obj):
-        items = obj.items.all() 
+        items = obj.variants.all() 
         if items.exists():
             min_price = min([item.price for item in items])
             return f"{min_price:,} đ"
