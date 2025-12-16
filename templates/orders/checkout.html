@@ -1,6 +1,8 @@
 {% extends "base/base.html" %} 
 {% load static %} 
-{% load humanize %} {% block start %}
+{% load humanize %} 
+
+{% block start %}
 <section class="section-content padding-y bg">
   <div class="container">
     
@@ -18,7 +20,7 @@
 
     <h4 class="text-center mb-4">Xác nhận thanh toán</h4>
 
-    <form action="{% url 'orders:checkout' %}" method="POST">
+    <form id="checkoutForm" action="{% url 'orders:checkout' %}" method="POST">
       {% csrf_token %}
 
       <div class="row">
@@ -35,9 +37,12 @@
                         {% for addr in addresses %}
                         <div class="form-check mb-3 p-3 border rounded position-relative {% if addr.is_default %}border-primary bg-light{% endif %}">
                             <input class="form-check-input ml-1" type="radio" 
-                                  name="selected_address" id="addr_{{ addr.uid }}" value="{{ addr.uid }}" 
-                                  {% if addr.is_default %}checked{% endif %}
-                                  style="transform: scale(1.2); margin-top: 5px;">
+                                   name="selected_address" 
+                                   form="checkoutForm"
+                                   id="addr_{{ addr.uid }}" 
+                                   value="{{ addr.uid }}" 
+                                   {% if addr.is_default %}checked{% endif %}
+                                   style="transform: scale(1.2); margin-top: 5px;">
                             
                             <label class="form-check-label ml-4 w-100 cursor-pointer" for="addr_{{ addr.uid }}">
                                 <strong class="d-block text-dark">
@@ -85,7 +90,7 @@
             <div class="card-body">
               <div class="form-group mb-3">
                 <label class="custom-control custom-radio d-flex align-items-center cursor-pointer">
-                  <input type="radio" name="payment_method" value="vnpay" class="custom-control-input me-2" checked />
+                  <input type="radio" name="payment_method" form="checkoutForm" value="vnpay" class="custom-control-input me-2" checked />
                   <div class="custom-control-label w-100">
                     Thanh toán qua VNPay
                     <img src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg" height="20" class="float-right" />
@@ -95,7 +100,7 @@
 
               <div class="form-group">
                 <label class="custom-control custom-radio d-flex align-items-center cursor-pointer">
-                  <input type="radio" name="payment_method" value="cod" class="custom-control-input me-2" />
+                  <input type="radio" name="payment_method" form="checkoutForm" value="cod" class="custom-control-input me-2" />
                   <div class="custom-control-label w-100">
                     Thanh toán khi nhận hàng (COD)
                     <i class="fa fa-truck float-right text-muted"></i>
@@ -178,7 +183,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block btn-lg w-100 shadow-sm" {% if not addresses %}disabled{% endif %}>
+          <button type="submit" form="checkoutForm" class="btn btn-primary btn-block btn-lg w-100 shadow-sm" {% if not addresses %}disabled{% endif %}>
             Xác nhận đặt hàng
           </button>
           
@@ -194,26 +199,23 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Selector chính xác các input có name="selected_address"
         const addressRadios = document.querySelectorAll('input[name="selected_address"]');
-        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        // Gán ID cho các phần tử để dễ quản lý, vì selector cũ dễ bị sai
+        
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrftoken = csrfInput ? csrfInput.value : '';
+        
         const totalElement = document.querySelector('.text-primary.fs-5'); 
         const shippingFeeElement = document.querySelector('.card-body .d-flex:nth-child(2) span.text-right');
         
-        // --- 1. HÀM CẬP NHẬT PHÍ SHIP QUA AJAX ---
+        // --- 1. HÀM CẬP NHẬT PHÍ SHIP ---
         function updateShippingFee(addressUid) {
-            // Kiểm tra địa chỉ có tồn tại không
             if (!addressUid) return;
 
             // Hiệu ứng "Đang tính..."
-            if (shippingFeeElement) {
-                shippingFeeElement.innerHTML = '<span class="text-muted">Đang tính...</span>';
-            }
-            if (totalElement) {
-                totalElement.innerHTML = '<span class="text-muted">Đang tính...</span>';
-            }
+            if (shippingFeeElement) shippingFeeElement.innerHTML = '<span class="text-muted small">Đang tính...</span>';
+            if (totalElement) totalElement.style.opacity = '0.5';
 
-            // SỬA LỖI 1: Fetch -> fecth
             fetch("{% url 'orders:update_shipping_fee' %}", {
                 method: "POST",
                 headers: {
@@ -224,28 +226,30 @@
             })
             .then(response => response.json())
             .then(data => {
+                if (totalElement) totalElement.style.opacity = '1';
+
                 if (data.status === 'success') {
-                    // SỬA LỖI 2: Format tiền và Template String
-                    const formatCurrency = (amount) => amount.toLocaleString('vi-VN');
+                    // Hàm format tiền tệ
+                    const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
                     
                     if (shippingFeeElement) {
                         const feeDisplay = data.shipping_fee > 0 
-                            ? '+ ' + formatCurrency(data.shipping_fee) + ' đ' 
+                            ? `+ ${formatCurrency(data.shipping_fee)} đ` 
                             : '<span class="text-success">Miễn phí</span>';
                         shippingFeeElement.innerHTML = feeDisplay;
                     }
                     
                     if (totalElement) {
-                        // SỬA LỖI CÚ PHÁP ${}
-                        totalElement.innerHTML = formatCurrency(data.total) + ' đ'; 
+                        totalElement.innerHTML = `${formatCurrency(data.total)} đ`; 
                     }
+                    console.log("Đã cập nhật phí ship cho địa chỉ:", addressUid);
                 } else {
-                    console.error('Lỗi khi cập nhật phí vận chuyển:', data.message);
+                    console.error('Lỗi tính phí:', data.message);
                 }
             })
             .catch(error => {
                 console.error('Lỗi mạng:', error);
-                alert('Lỗi kết nối máy chủ khi tính phí ship.');
+                if (totalElement) totalElement.style.opacity = '1';
             });
         }
         
@@ -256,21 +260,26 @@
             });
         });
 
-        // --- 3. CẬP NHẬT PHÍ SHIP KHI TẢI TRANG (QUAN TRỌNG) ---
-        // SỬA LỖI 3: Thiếu việc gọi hàm khi tải trang lần đầu
+        // --- 3. CẬP NHẬT PHÍ SHIP KHI TẢI TRANG ---
+        // Tìm nút radio đang được checked mặc định
         const defaultRadio = document.querySelector('input[name="selected_address"]:checked');
+        
         if (defaultRadio) {
-           
+            updateShippingFee(defaultRadio.value);
+        } else {
+            // Nếu có địa chỉ mà chưa chọn cái nào, chọn cái đầu tiên
+            if(addressRadios.length > 0) {
+                addressRadios[0].checked = true;
+                updateShippingFee(addressRadios[0].value);
+            }
         }
 
-        // --- 4. TỰ ĐỘNG BẬT MODAL KHI KHÔNG CÓ ĐỊA CHỈ ---
+        // --- 4. MODAL ---
         const noAddress = document.getElementById('no_address_flag');
-        if (noAddress) {
-             // Sử dụng cú pháp Vanilla JS cho Bootstrap 5
+        if (noAddress && typeof bootstrap !== 'undefined') {
              var myModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
              myModal.show();
         }
-
     });
 </script>
 {% include "accounts/address_form.html" with next_url="orders:checkout" %}

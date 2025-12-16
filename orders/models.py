@@ -36,9 +36,11 @@ class Payment(BaseModel):
 class Order(BaseModel):
     STATUS_CHOICES = [
         ('Pending', 'Chờ xác nhận'),
-        ('paid', 'Đã thanh toán'),
+        ('Confirmed','Đã xác nhận'),
         ('shipped', 'Đang giao'),
+        ('paid', 'Đã thanh toán'),
         ('cancelled', 'Đã hủy'),
+        
     ]
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -95,8 +97,6 @@ class OrderProduct(BaseModel):
     def save(self, *args, **kwargs):
         if not self.product_name and self.product:
             self.product_name = self.product.product_name
-        if not self.variant_name and self.variant:
-            self.variant_name = str(self.variant)
         if not self.product_price and self.variant:
             self.product_price = self.variant.price
         super().save(*args, **kwargs)

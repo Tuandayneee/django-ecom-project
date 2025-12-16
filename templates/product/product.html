@@ -237,9 +237,9 @@
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="#" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm btn-hover-scale">
+                            <button type="button" onclick="buyNow()" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm btn-hover-scale" id="buyNowBtn">
                                 Mua ngay
-                            </a>
+                            </button>
                         </div>
                     </div>
 
@@ -299,6 +299,65 @@
     const quantityInput = document.getElementById("quantityInput");
     const originalPriceDisplay = document.getElementById("originalPriceDisplay"); // Đã thêm biến này
 
+    function buyNow() {
+        // 1. Lấy thông tin biến thể đang chọn
+        const colorEl = document.querySelector('input[name="color"]:checked');
+        const sizeEl = document.querySelector('input[name="size"]:checked');
+        const quantity = parseInt(document.getElementById("quantityInput").value);
+
+        // Validate chưa chọn màu/size
+        const hasColor = document.querySelector('input[name="color"]');
+        const hasSize = document.querySelector('input[name="size"]');
+        
+        if ((hasColor && !colorEl) || (hasSize && !sizeEl)) {
+            alert("Vui lòng chọn đầy đủ Màu sắc và Kích thước!");
+            return;
+        }
+
+        const colorId = colorEl ? colorEl.value : "None";
+        const sizeId = sizeEl ? sizeEl.value : "None";
+        const key = `${colorId}-${sizeId}`;
+        const data = variantsMap[key]; // Dữ liệu variant từ JSON
+
+        if (!data || data.stock < quantity) {
+            alert("Sản phẩm tạm hết hàng hoặc không đủ số lượng!");
+            return;
+        }
+
+        // 2. Gửi request lên Server
+        const buyNowBtn = document.getElementById("buyNowBtn");
+        buyNowBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';
+        buyNowBtn.disabled = true;
+
+        fetch("{% url 'orders:buy_now' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                variant_uid: data.variant_uid,
+                quantity: quantity
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                // 3. Chuyển hướng sang Checkout
+                window.location.href = "{% url 'orders:checkout' %}";
+            } else {
+                alert("Lỗi: " + result.message);
+                buyNowBtn.innerHTML = 'Mua ngay';
+                buyNowBtn.disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Lỗi kết nối server");
+            buyNowBtn.innerHTML = 'Mua ngay';
+            buyNowBtn.disabled = false;
+        });
+    }
     // 2. Hàm format tiền tệ an toàn
     function safeFormatVND(amount) {
         if (typeof formatVND === "function") {

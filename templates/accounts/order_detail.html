@@ -46,17 +46,13 @@
         font-size: 18px;
     }
 
-    .track .step.active .icon {
-        background: #007bff;
-        border-color: #007bff;
-        color: white;
+    .track .step .icon {
+        width: 40px; /* Giảm từ 50px */
+        height: 40px;
+        font-size: 16px;
     }
-
     .track .step .text {
-        display: block;
-        font-weight: 500;
-        color: #666;
-        font-size: 14px;
+        font-size: 12px; /* Giảm từ 14px */
     }
 
     .track .step.active .text {
@@ -103,23 +99,22 @@
                         {% else %}
                             <div class="track">
                                 <div class="step active">
-                                    <span class="icon"><i class="fa fa-check"></i></span>
-                                    <span class="text">Đã đặt hàng</span>
+                                    <span class="icon"><i class="fa fa-clock"></i></span>
+                                    <span class="text">Chờ xác nhận</span>
                                 </div>
-                                
-                                <div class="step {% if order.status == 'Accepted' or order.status == 'paid' or order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
-                                    <span class="icon"><i class="fa fa-user-check"></i></span>
+
+                                <div class="step {% if order.status == 'Confirmed' or order.status == 'shipped' or order.status == 'paid' %}active{% endif %}">
+                                    <span class="icon"><i class="fa fa-clipboard-check"></i></span>
                                     <span class="text">Đã xác nhận</span>
                                 </div>
-                                
-                                <div class="step {% if order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+
+                                <div class="step {% if order.status == 'shipped' or order.status == 'paid' %}active{% endif %}">
                                     <span class="icon"><i class="fa fa-truck"></i></span>
                                     <span class="text">Đang giao</span>
                                 </div>
-                                
-                                <div class="step {% if order.status == 'Completed' %}active{% endif %}">
-                                    <span class="icon"><i class="fa fa-box-open"></i></span>
-                                    <span class="text">Đã giao</span>
+
+                                <div class="step {% if order.status == 'paid' %}active{% endif %}">
+                                    <span class="icon"><i class="fa fa-money-bill-wave"></i></span> <span class="text">Đã thanh toán</span>
                                 </div>
                             </div>
                         {% endif %}
