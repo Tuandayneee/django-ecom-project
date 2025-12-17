@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -5,15 +6,25 @@ from django.http import JsonResponse
 import json
 from datetime import datetime
 
-# Import Models
+from django.db.models import F
 from accounts.models import Cart, Address
+from ecom.settings import EMAIL_HOST_USER
 from orders.utils import get_user_shipping_fee
 from .models import Order, OrderProduct, Payment
 from products.models import Variant
-# Import hàm tính tiền chung
 from accounts.utils import calculate_cart_total
 
-# --- 1. VIEW THANH TOÁN (CHECKOUT) ---
+from django.core.mail import send_mail
+
+EMAIL_HOST_USER = settings.EMAIL_HOST_USER
+def thong_bao_don_hang(request,order_number,email):
+    send_mail(
+        'Xác nhận đơn hàng {order_number}',
+        'Cảm ơn bạn đã mua hàng. Đơn hàng đang được chuẩn bị.',
+        EMAIL_HOST_USER,
+        [email],
+        fail_silently=False,
+    )
 @login_required(login_url='login')
 def checkout(request):
     # 1. Khởi tạo biến để tránh lỗi UnboundLocalError
@@ -147,65 +158,62 @@ def handle_cod_payment(request, cart_obj, address_uid, direct_buy_data=None):
             return redirect('home')
             
         timestamp = datetime.now().strftime('%H%M%S')
-        
+        with transaction.atomic():
         # 1. Tạo Payment
-        payment = Payment.objects.create(
-            user=request.user,
-            payment_id=f"COD-{timestamp}",
-            payment_method='COD',
-            amount_paid=str(final_total),
-            status='Pending'
-        )
-
-        # 2. Tạo Order
-        order = Order.objects.create(
-            user=request.user,
-            payment=payment,
-            order_number=f"ORD-{request.user.id}-{timestamp}",
-            full_name=address.full_name, 
-            phone=address.phone,
-            address_line=address.address_line,
-            city=address.city,
-            order_total=subtotal,
-            shipping_fee=shipping_fee,
-            coupon_discount=discount,
-            tax=tax,
-            status='Pending',
-            is_ordered=True,
-            created_at=timestamp
-        )
-
-        # 3. Chuyển sản phẩm & Trừ kho
-        for item_data in order_items_list:
-            variant = item_data['variant']
-            
-            # Check tồn kho
-            if variant.stock < item_data['quantity']:
-                messages.error(request, f"Sản phẩm {variant.product.product_name} không đủ số lượng.")
-                order.delete()
-                payment.delete()
-                return redirect('cart')
-
-            variant.stock -= item_data['quantity']
-            variant.save()
-
-            OrderProduct.objects.create(
-                order=order,
-                product=variant.product,
-                variant=variant,
-                product_name=variant.product.product_name,
-                quantity=item_data['quantity'],
-                product_price=variant.price
+            payment = Payment.objects.create(
+                user=request.user,
+                payment_id=f"COD-{timestamp}",
+                payment_method='COD',
+                amount_paid=str(final_total),
+                status='Pending'
             )
+
+            # 2. Tạo Order
+            order = Order.objects.create(
+                user=request.user,
+                payment=payment,
+                order_number=f"ORD-{request.user.id}-{timestamp}",
+                full_name=address.full_name, 
+                phone=address.phone,
+                address_line=address.address_line,
+                city=address.city,
+                order_total=subtotal,
+                shipping_fee=shipping_fee,
+                coupon_discount=discount,
+                tax=tax,
+                status='Pending',
+                is_ordered=True,
+                created_at=timestamp
+            )
+
+            # 3. Chuyển sản phẩm & Trừ kho
+            for item_data in order_items_list:
+                variant = item_data['variant']
+                
+                # Check tồn kho
+                if variant.stock < item_data['quantity']:
+                    raise ValueError(f"Sản phẩm {variant.product.product_name} không đủ số lượng.")
+
+                variant.stock = F('stock') - item_data['quantity']
+                variant.save()
+
+                OrderProduct.objects.create(
+                    order=order,
+                    product=variant.product,
+                    variant=variant,
+                    product_name=variant.product.product_name,
+                    quantity=item_data['quantity'],
+                    product_price=variant.price
+                )
         
-        if direct_buy_data:
-            if 'direct_buy_item' in request.session:
-                del request.session['direct_buy_item']
-        else:
-            cart_obj.cart_items.all().delete() 
-            cart_obj.coupons.clear() 
-            cart_obj.save()
-        
+            if direct_buy_data:
+                if 'direct_buy_item' in request.session:
+                    del request.session['direct_buy_item']
+            else:
+                cart_obj.cart_items.all().delete() 
+                cart_obj.coupons.clear() 
+                cart_obj.save()
+        thong_bao_don_hang(request, order.order_number, request.user.email)
         messages.success(request, "Đặt hàng thành công!")
         return redirect('orders:order_success', order_uid=order.uid)
 

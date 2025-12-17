@@ -3,200 +3,7 @@
 
 {% block start %}
 
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
-    .login-wrapper {
-        background-color: #c9d6ff;
-        background: linear-gradient(to right, #e2e2e2, #c9d6ff);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        height: 100vh;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .container-login {
-        background-color: #fff;
-        border-radius: 30px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
-        position: relative;
-        overflow: hidden;
-        width: 768px;
-        max-width: 100%;
-        min-height: 480px;
-    }
-
-    .container-login p {
-        font-size: 14px;
-        line-height: 20px;
-        letter-spacing: 0.3px;
-        margin: 20px 0;
-    }
-
-    .container-login span {
-        font-size: 12px;
-    }
-
-    .container-login a {
-        color: #333;
-        font-size: 13px;
-        text-decoration: none;
-        margin: 15px 0 10px;
-    }
-
-    .container-login button {
-        background-color: #512da8;
-        color: #fff;
-        font-size: 12px;
-        padding: 10px 45px;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        margin-top: 10px;
-        cursor: pointer;
-    }
-
-    .container-login button.hidden {
-        background-color: transparent;
-        border-color: #fff;
-    }
-
-    .container-login form {
-        background-color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        padding: 0 40px;
-        height: 100%;
-    }
-
-    .container-login input {
-        background-color: #eee;
-        border: none;
-        margin: 8px 0;
-        padding: 10px 15px;
-        font-size: 13px;
-        border-radius: 8px;
-        width: 100%;
-        outline: none;
-    }
-
-    .form-container {
-        position: absolute;
-        top: 0;
-        height: 100%;
-        transition: all 0.6s ease-in-out;
-    }
-
-    /* SIGN IN (LOGIN) */
-    .sign-in {
-        left: 0;
-        width: 50%;
-        z-index: 2;
-    }
-
-    .container-login.active .sign-in {
-        transform: translateX(100%);
-    }
-
-    /* SIGN UP (REGISTER) */
-    .sign-up {
-        left: 0;
-        width: 50%;
-        opacity: 0;
-        z-index: 1;
-    }
-
-    .container-login.active .sign-up {
-        transform: translateX(100%);
-        opacity: 1;
-        z-index: 5;
-        animation: move 0.6s;
-    }
-
-    @keyframes move {
-        0%, 49.99% {
-            opacity: 0;
-            z-index: 1;
-        }
-        50%, 100% {
-            opacity: 1;
-            z-index: 5;
-        }
-    }
-
-    /* OVERLAY (MÀU TÍM) */
-    .toggle-container {
-        position: absolute;
-        top: 0;
-        left: 50%;
-        width: 50%;
-        height: 100%;
-        overflow: hidden;
-        transition: all 0.6s ease-in-out;
-        border-radius: 150px 0 0 100px;
-        z-index: 1000;
-    }
-
-    .container-login.active .toggle-container {
-        transform: translateX(-100%);
-        border-radius: 0 150px 100px 0;
-    }
-
-    .toggle {
-        background-color: #512da8;
-        height: 100%;
-        background: linear-gradient(to right, #5c6bc0, #512da8);
-        color: #fff;
-        position: relative;
-        left: -100%;
-        height: 100%;
-        width: 200%;
-        transform: translateX(0);
-        transition: all 0.6s ease-in-out;
-    }
-
-    .container-login.active .toggle {
-        transform: translateX(50%);
-    }
-
-    .toggle-panel {
-        position: absolute;
-        width: 50%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        padding: 0 30px;
-        text-align: center;
-        top: 0;
-        transform: translateX(0);
-        transition: all 0.6s ease-in-out;
-    }
-
-    .toggle-left {
-        transform: translateX(-200%);
-    }
-
-    .container-login.active .toggle-left {
-        transform: translateX(0);
-    }
-
-    .toggle-right {
-        right: 0;
-        transform: translateX(0);
-    }
-
-    .container-login.active .toggle-right {
-        transform: translateX(200%);
-    }
-</style>
 
 <div class="login-wrapper">
     
@@ -240,6 +47,24 @@
                 <a href="{% url 'reset_password' %}">Quên mật khẩu?</a>
                 
                 <button type="submit">Đăng Nhập</button>
+
+                {% load socialaccount %}
+                <div style="margin-top: 15px; width: 100%; text-align: center; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 12px; color: #666; margin-right: 10px;">hoặc</span>
+                    <a href="{% provider_login_url 'google' %}" class="social-icon google" title="Đăng nhập bằng Google">
+                        <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            <path fill="none" d="M1 1h22v22H1z"/>
+                        </svg>
+                    </a>
+
+                    <a href="{% provider_login_url 'github' %}" class="social-icon github" title="Đăng nhập bằng GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
             </form>
         </div>
 
@@ -256,6 +81,7 @@
                     <p>Đăng ký tài khoản với thông tin cá nhân để bắt đầu hành trình với chúng tôi</p>
                     <button class="hidden" id="register">Đăng Ký</button>
                 </div>
+                
             </div>
         </div>
     </div>

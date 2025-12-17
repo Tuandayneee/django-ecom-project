@@ -94,15 +94,35 @@
                                     <td class="fw-bold text-primary">
                                         {{ order.order_total|intcomma }} đ
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if order.status == 'Pending' %}
-                                            <span class="badge badge-soft-warning">Chờ xử lý</span>
-                                        {% elif order.status == 'paid' or order.status == 'shipped' %}
-                                            <span class="badge badge-soft-success">Hoàn thành</span>
+                                            <span class="badge rounded-pill bg-warning text-dark px-3 py-2">
+                                                <i class="fas fa-clock me-1"></i> {{ order.get_status_display }}
+                                            </span>
+
+                                        {% elif order.status == 'Confirmed' %}
+                                            <span class="badge rounded-pill bg-primary px-3 py-2">
+                                                <i class="fas fa-check me-1"></i> {{ order.get_status_display }}
+                                            </span>
+
+                                        {% elif order.status == 'shipped' %}
+                                            <span class="badge rounded-pill bg-info text-dark px-3 py-2">
+                                                <i class="fas fa-truck me-1"></i> {{ order.get_status_display }}
+                                            </span>
+
+                                        {% elif order.status == 'paid' %}
+                                            <span class="badge rounded-pill bg-success px-3 py-2">
+                                                <i class="fas fa-money-bill-wave me-1"></i> {{ order.get_status_display }}
+                                            </span>
+
                                         {% elif order.status == 'cancelled' %}
-                                            <span class="badge badge-soft-danger">Đã hủy</span>
+                                            <span class="badge rounded-pill bg-danger px-3 py-2">
+                                                <i class="fas fa-times me-1"></i> {{ order.get_status_display }}
+                                            </span>
                                         {% else %}
-                                            <span class="badge bg-secondary">{{ order.status }}</span>
+                                            <span class="badge rounded-pill bg-secondary px-3 py-2">
+                                                {{ order.get_status_display }}
+                                            </span>
                                         {% endif %}
                                     </td>
                                     <td class="text-end pe-4">

@@ -15,6 +15,7 @@ class Profile(BaseModel):
     is_email_verified = models.BooleanField(default=False)
     email_token = models.CharField(max_length=100, null=True, blank=True)
     profile_image = models.ImageField(upload_to='profile')
+    phone = models.CharField(max_length=20, null=True, blank=True)
 
     def get_cart_count(self):
 

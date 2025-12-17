@@ -167,6 +167,7 @@ footer {
   justify-content: center;
   flex-direction: column;
   height: 100vh;
+  font-family: "Montserrat", sans-serif;
 }
 
 .container-login {
@@ -287,17 +288,41 @@ footer {
   margin: 20px 0;
 }
 
-.social-icons a {
-  border: 1px solid #ccc;
-  border-radius: 20%;
+.social-icon {
   display: inline-flex;
-  justify-content: center;
   align-items: center;
-  margin: 0 3px;
-  width: 40px;
-  height: 40px;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  margin: 0 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.social-icon svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+.social-icon.google {
+  background-color: white;
+  border: 1px solid #ddd;
+}
+.social-icon.google:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+.social-icon.github {
+  background-color: #333;
+  color: white;
 }
 
+.social-icon.github:hover {
+  background-color: #1a1a1a;
+  transform: translateY(-2px);
+}
 /* Overlay Toggle */
 .toggle-container {
   position: absolute;
@@ -493,7 +518,6 @@ footer {
   justify-content: center;
 }
 
-/* 2. Màu Pastel (Màu nhạt) cho Icon và Badge */
 .bg-purple-light {
   background-color: #f3e8ff;
 }
@@ -506,7 +530,7 @@ footer {
 }
 .text-warning {
   color: #c2410c !important;
-} /* Cam đậm cho dễ đọc */
+}
 
 .bg-success-light {
   background-color: #f0fdf4;
@@ -515,7 +539,6 @@ footer {
   color: #15803d !important;
 }
 
-/* 3. Hiệu ứng Stat Card */
 .stat-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -524,7 +547,6 @@ footer {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* 4. Badge trạng thái mềm mại (Pill shape + màu nhạt) */
 .badge-soft-warning {
   background-color: #fff7ed;
   color: #c2410c;
@@ -547,7 +569,6 @@ footer {
   font-weight: 600;
 }
 
-/* 5. Tùy chỉnh Table */
 .custom-table th {
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -556,7 +577,7 @@ footer {
   transition: background-color 0.2s;
 }
 .custom-table tr:hover {
-  background-color: #f8f9fa; /* Hover dòng cho dễ nhìn */
+  background-color: #f8f9fa;
 }
 .product-image-zoom {
   width: 100%;

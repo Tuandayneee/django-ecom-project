@@ -30,9 +30,15 @@ def register_page(request):
             return render(request, 'accounts/login_register.html')
 
         try:
-            user_obj = User.objects.create_user(username=email, email=email,phone = phone,  first_name=first_name, last_name=last_name)
+            user_obj = User.objects.create_user(username=email, email=email, first_name=first_name, last_name=last_name)
             user_obj.set_password(password)
             user_obj.save()
+            
+            # Lưu phone vào Profile
+            profile = user_obj.profile
+            profile.phone = phone
+            profile.save()
+            
             messages.success(request, 'Đăng ký thành công! Vui lòng đăng nhập.')
             return redirect('login')
         except Exception as e:
