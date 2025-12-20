@@ -1,83 +1,39 @@
 {% extends "base/base.html" %}
-{% load humanize %}
 {% load static %}
+{% load humanize %}
+
+{% block title %}Chi tiết đơn hàng #{{ order.order_number }} - Urban Vibe{% endblock %}
 
 {% block start %}
 
-<style>
-    .track {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 15px;
-        position: relative;
-        padding: 20px 0;
-    }
-
-    .track::before {
-        content: '';
-        position: absolute;
-        top: 30px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: #ddd;
-        z-index: 1;
-    }
-
-    .track .step {
-        flex: 1;
-        text-align: center;
-        position: relative;
-        z-index: 2;
-    }
-
-    .track .step .icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: #f0f0f0;
-        border: 2px solid #ddd;
-        color: #999;
-        margin: 0 auto 10px;
-        font-size: 18px;
-    }
-
-    .track .step .icon {
-        width: 40px; /* Giảm từ 50px */
-        height: 40px;
-        font-size: 16px;
-    }
-    .track .step .text {
-        font-size: 12px; /* Giảm từ 14px */
-    }
-
-    .track .step.active .text {
-        color: #007bff;
-        font-weight: 600;
-    }
-</style>
 
 
-
-<section class="section-content padding-y bg-light" style="min-height: 80vh">
-    <div class="container">
+<section class="section-content padding-y bg-light" style="min-height: 85vh;">
+    <div class="container py-4">
         
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="mb-1 fw-bold text-dark">Chi tiết đơn hàng</h4>
-                <p class="text-muted mb-0">
-                    Mã đơn: <span class="text-primary fw-bold">#{{ order.order_number }}</span> 
-                    <span class="mx-2">|</span> 
-                    Ngày đặt: {{ order.created_at|date:"d/m/Y H:i" }}
-                </p>
+            <div class="d-flex align-items-center">
+                <a href="{% url 'user_orders' %}" class="btn btn-white border rounded-circle me-3 shadow-sm" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa fa-arrow-left text-dark"></i>
+                </a>
+                <div>
+                    <h4 class="fw-bold m-0 text-dark">Chi tiết đơn hàng</h4>
+                    <p class="text-muted small m-0">Mã đơn: <strong>#{{ order.order_number }}</strong> • Ngày: {{ order.created_at|date:"d/m/Y H:i" }}</p>
+                </div>
             </div>
-            <a href="{% url 'user_orders' %}" class="btn btn-outline-secondary">
-                <i class="fa fa-arrow-left me-1"></i> Quay lại
-            </a>
+            
+            <div class="d-none d-md-block">
+                {% if order.status == 'New' or order.status == 'Pending' %}
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold" onclick="return confirm('Bạn chắc chắn muốn hủy đơn này?')">
+                        <i class="fa fa-times me-1"></i> Hủy đơn hàng
+                    </button>
+                {% elif order.status == 'Completed' %}
+                    <a href="#" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold">
+                        <i class="fa fa-rotate-left me-1"></i> Mua lại
+                    </a>
+                {% endif %}
+                <button class="btn btn-link text-muted" onclick="window.print()"><i class="fa fa-print"></i></button>
+            </div>
         </div>
 
         <div class="row">
@@ -88,178 +44,162 @@
 
             <main class="col-lg-9">
                 
-                <div class="card mb-4 border-0 shadow-sm">
-                    <div class="card-body px-5 py-4">
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-4">
                         {% if order.status == 'Cancelled' %}
-                            <div class="alert alert-danger text-center mb-0">
-                                <i class="fa fa-times-circle fa-2x mb-2"></i>
-                                <h5>Đơn hàng đã bị hủy</h5>
-                                <p class="mb-0">Vui lòng liên hệ CSKH nếu bạn cần hỗ trợ thêm.</p>
+                            <div class="alert alert-danger mb-0 text-center rounded-3 border-0">
+                                <i class="fa-solid fa-circle-xmark me-2 fs-5 align-middle"></i> 
+                                <span class="fw-bold">Đơn hàng này đã bị hủy</span>
+                                <p class="small mb-0 mt-1">Lý do: Thay đổi ý định (hoặc lý do từ admin)</p>
                             </div>
                         {% else %}
-                            <div class="track">
-                                <div class="step active">
-                                    <span class="icon"><i class="fa fa-clock"></i></span>
-                                    <span class="text">Chờ xác nhận</span>
-                                </div>
+                            <div class="track-wrapper">
+                                <div class="track">
+                                    <div class="step active">
+                                        <div class="step-icon"><i class="fa fa-file-invoice"></i></div>
+                                        <span class="step-text">Đã đặt hàng</span>
+                                        <div class="small text-muted mt-1">{{ order.created_at|date:"H:i d/m" }}</div>
+                                    </div>
 
-                                <div class="step {% if order.status == 'Confirmed' or order.status == 'shipped' or order.status == 'paid' %}active{% endif %}">
-                                    <span class="icon"><i class="fa fa-clipboard-check"></i></span>
-                                    <span class="text">Đã xác nhận</span>
-                                </div>
+                                    <div class="step {% if order.status == 'Confirmed' or order.status == 'Accepted' or order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+                                        <div class="step-icon"><i class="fa fa-box-open"></i></div>
+                                        <span class="step-text">Đã xác nhận</span>
+                                    </div>
 
-                                <div class="step {% if order.status == 'shipped' or order.status == 'paid' %}active{% endif %}">
-                                    <span class="icon"><i class="fa fa-truck"></i></span>
-                                    <span class="text">Đang giao</span>
-                                </div>
+                                    <div class="step {% if order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+                                        <div class="step-icon"><i class="fa fa-truck-fast"></i></div>
+                                        <span class="step-text">Đang giao</span>
+                                    </div>
 
-                                <div class="step {% if order.status == 'paid' %}active{% endif %}">
-                                    <span class="icon"><i class="fa fa-money-bill-wave"></i></span> <span class="text">Đã thanh toán</span>
+                                    <div class="step {% if order.status == 'Completed' %}active{% endif %}">
+                                        <div class="step-icon"><i class="fa fa-check"></i></div>
+                                        <span class="step-text">Hoàn thành</span>
+                                    </div>
                                 </div>
                             </div>
                         {% endif %}
                     </div>
                 </div>
 
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom">
-                                <h6 class="mb-0 text-center text-primary fw-bold">
-                                    <i class="fa fa-map-marker-alt me-2"></i>Địa chỉ nhận hàng
-                                </h6>
-                            </div>
-                            <div class="card-body text-center">
-                                <h6 class="fw-bold">{{ order.full_name }}</h6>
-                                <p class="mb-1 text-muted small"><i class="fa fa-phone me-1"></i> {{ order.phone }}</p>
-                                <p class="mb-0 text-muted small"><i class="fa fa-home me-1"></i> {{ order.address }}, {{ order.city }}</p>
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="info-box">
+                            <div class="d-flex align-items-start">
+                                <i class="fa-solid fa-location-dot text-primary fs-5 me-3 mt-1"></i>
+                                <div>
+                                    <div class="info-label">Địa chỉ nhận hàng</div>
+                                    <div class="info-content">{{ order.full_name }}</div>
+                                    <div class="text-muted small mt-1">{{ order.phone }}</div>
+                                    <div class="text-muted small" style="line-height: 1.4;">{{ order.shipping_address }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom">
-                                <h6 class="mb-0 text-center text-primary fw-bold">
-                                    <i class="fa fa-credit-card me-2"></i>Thông tin thanh toán
-                                </h6>
-                            </div>
-                            <div class="card-body text-center">
-                                <div class="mb-3">
-                                    <span class="text-muted small d-block mb-1">Phương thức:</span>
-                                    <span class="fw-bold text-uppercase">
-                                        {% if order.payment %}
-                                            {{ order.payment.payment_method }}
-                                        {% else %}
-                                            COD
-                                        {% endif %}
-                                    </span>
-                                </div>
+                    <div class="col-md-6">
+                        <div class="info-box">
+                            <div class="d-flex align-items-start">
+                                <i class="fa-solid fa-wallet text-warning fs-5 me-3 mt-1"></i>
                                 <div>
-                                    <span class="text-muted small d-block mb-1">Trạng thái:</span>
-                                    
-                                    {# --- LOGIC HIỂN THỊ TRẠNG THÁI THANH TOÁN --- #}
-                                    {% if order.payment.payment_method == 'COD' or order.payment.payment_method == 'cod' %}
-                                        {% if order.status == 'Completed' %}
-                                            <span class="badge bg-success rounded-pill"><i class="fa fa-check"></i> Đã thanh toán</span>
+                                    <div class="info-label">Thanh toán</div>
+                                    <div class="info-content text-uppercase">
+                                        {% if order.payment %}{{ order.payment.payment_method }}{% else %}COD{% endif %}
+                                    </div>
+                                    <div class="mt-2">
+                                        {% if order.is_ordered %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success px-2">Đã thanh toán</span>
                                         {% else %}
-                                            <span class="badge bg-secondary rounded-pill"><i class="fa fa-clock"></i> Thanh toán khi nhận</span>
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning px-2 text-dark">Chờ thanh toán</span>
                                         {% endif %}
-                                    {% else %}
-                                        <span class="badge bg-success rounded-pill"><i class="fa fa-check"></i> Đã thanh toán</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom">
-                                <h6 class="mb-0 text-center text-primary fw-bold">
-                                    <i class="fa fa-shopping-bag me-2"></i>Tổng tiền
-                                </h6>
-                            </div>
-                            <div class="card-body text-center">
-                                <div class="mb-2">
-                                    <p class="text-muted small mb-1">Tổng tiền hàng</p>
-                                    <p class="fw-bold">{{ order.order_total|intcomma }} đ</p>
-                                </div>
-                                <div class="mb-2">
-                                    <p class="text-muted small mb-1">Phí vận chuyển</p>
-                                    <p class="fw-bold text-success">
-                                        {% if order.shipping_fee > 0 %} + {{ order.shipping_fee|intcomma }} đ {% else %} Miễn phí {% endif %}
-                                    </p>
-                                </div>
-                                {% if order.coupon_discount > 0 %}
-                                <div class="mb-2">
-                                    <p class="text-muted small mb-1">Giảm giá</p>
-                                    <p class="fw-bold text-danger">- {{ order.coupon_discount|intcomma }} đ</p>
-                                </div>
-                                {% endif %}
-                                <hr class="my-2">
-                                <div>
-                                    <p class="text-muted small mb-1">Tổng cộng</p>
-                                    <h5 class="mb-0 fw-bold text-primary">{{ order.grand_total|intcomma }} đ</h5>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-bottom">
-                        <h6 class="mb-0 text-center text-primary fw-bold">
-                            <i class="fa fa-list me-2"></i>Danh sách sản phẩm
-                        </h6>
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="mb-0 fw-bold">Sản phẩm</h6>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-borderless align-middle mb-0">
-                            <thead class="bg-light text-secondary small text-uppercase">
+                        <table class="table align-middle mb-0">
+                            <thead class="bg-light text-muted small text-uppercase">
                                 <tr>
-                                    <th class="ps-4" style="width: 50%">Sản phẩm</th>
-                                    <th class="text-center">Đơn giá</th>
-                                    <th class="text-center">Số lượng</th>
-                                    <th class="text-end pe-4">Thành tiền</th>
+                                    <th class="ps-4">Sản phẩm</th>
+                                    <th class="text-center">Giá</th>
+                                    <th class="text-center">SL</th>
+                                    <th class="text-end pe-4">Tạm tính</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in order.order_products.all %}
-                                <tr class="border-bottom">
+                                {% for item in order_items %}
+                                <tr>
                                     <td class="ps-4 py-3">
                                         <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0">
-                                                {% if item.product.product_images.first %}
-                                                    <img src="{{ item.product.product_images.first.image.url }}" 
-                                                         class="rounded border" 
-                                                         style="width: 70px; height: 70px; object-fit: cover;">
-                                                {% else %}
-                                                    <div class="rounded border bg-light d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
-                                                        <i class="fa fa-image text-muted"></i>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <h6 class="mb-1">
-                                                    <a href="{{ item.product.get_url }}" class="text-dark text-decoration-none fw-bold">
-                                                        {{ item.product.product_name }}
-                                                    </a>
-                                                </h6>
-                                                <p class="text-muted small mb-0">
-                                                    {% if item.variant.color %} {{ item.variant.color.color_name }} {% endif %}
-                                                    {% if item.variant.color and item.variant.size %} | {% endif %}
-                                                    {% if item.variant.size %} {{ item.variant.size.size_name }} {% endif %}
-                                                </p>
+                                            {% if item.variant.image %}
+                                                <img src="{{ item.variant.image.url }}" class="rounded border" width="60" height="60" style="object-fit: cover;">
+                                            {% elif item.product.product_images.first %}
+                                                <img src="{{ item.product.product_images.first.image.url }}" class="rounded border" width="60" height="60" style="object-fit: cover;">
+                                            {% else %}
+                                                <img src="https://via.placeholder.com/60" class="rounded border" width="60">
+                                            {% endif %}
+                                            <div class="ms-3">
+                                                <a href="{{ item.product.get_url }}" class="text-dark text-decoration-none fw-bold small d-block mb-1">
+                                                    {{ item.product.product_name }}
+                                                </a>
+                                                <div class="text-muted small">
+                                                    {% if item.variant.size %}<span class="badge bg-light text-dark border me-1">{{ item.variant.size.size_name }}</span>{% endif %}
+                                                    {% if item.variant.color %}<span class="badge bg-light text-dark border">{{ item.variant.color.color_name }}</span>{% endif %}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="text-center text-muted">{{ item.product_price|intcomma }} đ</td>
                                     <td class="text-center fw-bold">x{{ item.quantity }}</td>
-                                    <td class="text-end pe-4 fw-bold text-dark">{{ item.total_price|intcomma }} đ</td>
+                                    <td class="text-end pe-4 fw-bold">{{ item.sub_total|intcomma }} đ</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div class="row justify-content-end">
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between mb-2 text-muted small">
+                                    <span>Tổng tiền hàng</span>
+                                    <span>{{ order.order_total|intcomma }} đ</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2 text-muted small">
+                                    <span>Phí vận chuyển</span>
+                                    <span>
+                                        {% if order.shipping_fee > 0 %} + {{ order.shipping_fee|intcomma }} đ {% else %} Miễn phí {% endif %}
+                                    </span>
+                                </div>
+                                {% if order.tax > 0 %}
+                                <div class="d-flex justify-content-between mb-2 text-muted small">
+                                    <span>Thuế</span>
+                                    <span>+ {{ order.tax|intcomma }} đ</span>
+                                </div>
+                                {% endif %}
+                                {% if order.discount > 0 %}
+                                <div class="d-flex justify-content-between mb-2 text-success small">
+                                    <span>Giảm giá</span>
+                                    <span>- {{ order.discount|intcomma }} đ</span>
+                                </div>
+                                {% endif %}
+                                
+                                <hr class="my-3 border-dashed">
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Thành tiền</span>
+                                    <span class="fs-4 fw-bold text-primary">{{ order.grand_total|intcomma }} đ</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

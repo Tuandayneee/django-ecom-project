@@ -1,0 +1,80 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Liên hệ & Địa chỉ - E-Shop{% endblock %}
+
+{% block start %}
+
+
+<div class="contact-page-wrapper">
+    
+    <header class="page-header">
+        <div class="container">
+            <h1>Ghé thăm Store</h1>
+            <p>Trải nghiệm trực tiếp chất liệu và form dáng tại không gian của chúng tôi</p>
+        </div>
+    </header>
+
+    <div class="container pb-5">
+        <div class="row g-4"> <div class="col-lg-5">
+                <div class="info-card">
+                    <h3 class="mb-4" style="font-weight: 700;">Thông tin liên hệ</h3>
+                    
+                    <div class="info-item">
+                        <div class="info-icon"><i class="fa-solid fa-location-dot"></i></div>
+                        <div class="info-content">
+                            <h5>Địa chỉ Store</h5>
+                            <p>Số 18, Ngõ 360 Phố Xã Đàn,<br>Quận Đống Đa, Hà Nội</p>
+                            <a href="https://maps.google.com" target="_blank" style="font-size: 0.9rem; color: #d4a373; font-weight: 600; margin-top: 5px; display: inline-block;">Chỉ đường trên Google Maps &rarr;</a>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon"><i class="fa-solid fa-phone"></i></div>
+                        <div class="info-content">
+                            <h5>Hotline & Zalo</h5>
+                            <p><a href="tel:0909888XXX">0909.888.XXX</a></p>
+                            <p style="font-size: 0.85rem; color: #999;">Hỗ trợ 24/7</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon"><i class="fa-regular fa-clock"></i></div>
+                        <div class="info-content">
+                            <h5>Giờ mở cửa</h5>
+                            <p>Thứ 2 - Thứ 6: 9:00 - 22:00</p>
+                            <p>Cuối tuần: 8:30 - 22:30</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon"><i class="fa-regular fa-envelope"></i></div>
+                        <div class="info-content">
+                            <h5>Email hợp tác</h5>
+                            <p><a href="mailto:cskh@eshop.vn">cskh@eshop.vn</a></p>
+                        </div>
+                    </div>
+
+                    <div class="social-links">
+                        <h6 class="mb-3" style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Follow Us</h6>
+                        <a href="#" class="social-btn"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="social-btn"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="social-btn"><i class="fa-brands fa-tiktok"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="map-container">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.3878453883775!2d105.83467431533207!3d21.017159986004654!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ab87c7c34b69%3A0x66c1417088b9952!2zMzYwIFAuIFjDoyDEkMOgbiwgTmFtIMSQ4buTbmcsIMSQ4buRbmcgxJBhLCBIw6AgTuG7mWksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1684310000000!5m2!1sen!2s" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

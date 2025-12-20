@@ -22,7 +22,15 @@ def index(request):
     context = {
         'products': products,
         'categories': categories,
-        'sliders': sliders, # <--- Truyền biến này sang template
+        'sliders': sliders, 
         'search_query': search_query
     }   
     return render(request, 'home/index.html', context) 
+
+
+def about(request):
+    
+    return render(request, 'home/about.html')
+
+def contact(request):
+    return render(request, 'home/contact.html')

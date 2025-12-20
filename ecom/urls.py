@@ -37,6 +37,8 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('orders/', include('orders.urls')),
     path('api/cart/', CartAPIView.as_view(), name='api_cart'),
+    path('', include('home.urls')),
+    
    
 ]
 

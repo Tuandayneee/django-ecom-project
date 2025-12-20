@@ -1,82 +1,147 @@
 {% extends "base/base.html" %}
+{% load static %}
 {% load humanize %}
 
+{% block title %}Lịch sử đơn hàng - Urban Vibe{% endblock %}
+
 {% block start %}
-<section class="section-content padding-y bg-light" style="min-height: 80vh;">
-    <div class="container">
+
+
+
+<section class="section-content padding-y bg-light" style="min-height: 85vh;">
+    <div class="container py-4">
         <div class="row">
             
-            <div class="col-md-3">
+            <div class="col-lg-3 col-md-4 mb-4">
                 {% include "includes/user_sidebar.html" with active_tab="orders" %}
             </div>
 
-            <main class="col-md-9">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0">Lịch sử mua hàng</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle">
-                                <thead class="bg-light">
-                                    <tr>
-                                        <th class="ps-4">Mã đơn</th>
-                                        <th>Ngày đặt</th>
-                                        <th>Sản phẩm</th>
-                                        <th>Tổng tiền</th>
-                                        <th>Trạng thái</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for order in orders %}
-                                    <tr>
-                                        <td class="ps-4 fw-bold">
-                                            <a href="{% url 'order_detail' order.uid %}}" class="text-decoration-none">
-                                                #{{ order.order_number|slice:":8" }}
-                                            </a>
-                                        </td>
-                                        <td>{{ order.created_at|date:"d/m/Y" }}</td>
-                                        <td>
-                                            {% with first_item=order.order_products.first %}
-                                                {% if first_item %}
-                                                    {{ first_item.product.product_name }}
-                                                    {% if order.order_products.count > 1 %}
-                                                        <span class="text-muted small">(+{{ order.order_products.count|add:"-1" }} sp khác)</span>
-                                                    {% endif %}
-                                                {% endif %}
-                                            {% endwith %}
-                                        </td>
-                                        <td class="fw-bold">{{ order.order_total|intcomma }} đ</td>
-                                        <td>
-                                            {% if order.status == 'Pending' %}
-                                                <span class="badge bg-warning text-dark">Chờ xử lý</span>
-                                            {% elif order.status == 'paid' or order.status == 'shipped' %}
-                                                <span class="badge bg-success">Hoàn thành</span>
-                                            {% elif order.status == 'cancelled' %}
-                                                <span class="badge bg-danger">Đã hủy</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <a href="{% url 'order_detail' order.uid %}" class="btn btn-outline-primary btn-sm">Xem</a>
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="6" class="text-center py-5">
-                                            <i class="fa fa-shopping-cart fa-3x text-muted mb-3"></i>
-                                            <p class="text-muted">Bạn chưa có đơn hàng nào.</p>
-                                            <a href="{% url 'home' %}" class="btn btn-primary">Mua sắm ngay</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+            <main class="col-lg-9 col-md-8">
+                
+                <h3 class="fw-bold mb-4">Đơn hàng của tôi</h3>
+
+                <div class="mb-4 overflow-auto">
+                    <ul class="nav nav-pills flex-nowrap" id="order-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="filterOrders('all')">Tất cả</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="filterOrders('Pending')">Chờ xử lý</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="filterOrders('shipped')">Đang giao</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="filterOrders('Completed')">Hoàn thành</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="filterOrders('Cancelled')">Đã hủy</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div id="order-list-container">
+                    {% for order in orders %}
+                    <div class="order-item-wrapper" data-status="{{ order.status }}">
+                        
+                        <div class="order-header">
+                            <div>
+                                <span class="fw-bold text-dark me-2">#{{ order.order_number|slice:":10" }}</span>
+                                <span class="text-muted small border-start ps-2">{{ order.created_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                            
+                            <div class="fw-bold text-uppercase small 
+                                {% if order.status == 'New' or order.status == 'Pending' %}text-status-pending
+                                {% elif order.status == 'Completed' %}text-status-success
+                                {% elif order.status == 'Cancelled' %}text-status-danger
+                                {% else %}text-status-info{% endif %}">
+                                {{ order.get_status_display }}
+                            </div>
+                        </div>
+
+                        <div class="order-body">
+                            <div class="d-flex align-items-center">
+                                {% with first_item=order.order_products.first %}
+                                    {% if first_item.variant.image %}
+                                        <img src="{{ first_item.variant.image.url }}" class="product-thumb-small">
+                                    {% elif first_item.product.product_images.first %}
+                                        <img src="{{ first_item.product.product_images.first.image.url }}" class="product-thumb-small">
+                                    {% else %}
+                                        <img src="https://via.placeholder.com/60" class="product-thumb-small">
+                                    {% endif %}
+                                    
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 text-dark">{{ first_item.product.product_name }}</h6>
+                                        <p class="text-muted small mb-0">
+                                            {% if first_item.variant.size %}Size: {{ first_item.variant.size.size_name }}{% endif %}
+                                            {% if first_item.variant.color %} / {{ first_item.variant.color.color_name }}{% endif %}
+                                            <span class="ms-2">x{{ first_item.quantity }}</span>
+                                        </p>
+                                    </div>
+                                {% endwith %}
+                                
+                                {% if order.order_products.count > 1 %}
+                                <div class="text-muted small ms-3 border-start ps-3 d-none d-md-block">
+                                    Xem thêm {{ order.order_products.count|add:"-1" }} sản phẩm
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <hr class="my-3 border-light">
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small">Tổng tiền:</span>
+                                    <span class="fw-bold fs-5 text-dark ms-1">{{ order.grand_total|intcomma }} đ</span>
+                                </div>
+                                
+                                <div class="order-actions">
+                                    {% if order.status == 'Completed' %}
+                                        <a href="{% url 'order_detail' order.order_number %}" class="btn btn-primary btn-sm rounded-pill px-3">Mua lại</a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'order_detail' order.order_number %}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                                        Xem chi tiết
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    {% empty %}
+                    <div class="text-center py-5 bg-white rounded-3 shadow-sm border">
+                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" width="120" style="opacity: 0.6;">
+                        <h5 class="mt-3 text-muted">Chưa có đơn hàng nào</h5>
+                        <a href="{% url 'home' %}" class="btn btn-dark rounded-pill mt-2">Đi mua sắm ngay</a>
+                    </div>
+                    {% endfor %}
                 </div>
+
             </main>
         </div>
     </div>
 </section>
+
+<script>
+    function filterOrders(status) {
+        // 1. Active Tab
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // 2. Filter Items
+        const items = document.querySelectorAll('.order-item-wrapper');
+        let hasVisible = false;
+
+        items.forEach(item => {
+            if (status === 'all' || item.dataset.status === status) {
+                item.style.display = 'block';
+                hasVisible = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+
+    }
+</script>
+
 {% endblock %}

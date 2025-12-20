@@ -1,71 +1,79 @@
 {% load static %}
-<div class="card border-0 shadow-sm">
-    <div class="card-body text-center">
-        <div class="mb-3 position-relative d-inline-block group-avatar" style="cursor: pointer;">
+
+
+
+<div class="sidebar-card">
+    
+    <div class="profile-header">
+        <form id="avatar-form" method="POST" action="{% url 'update_avatar' %}" enctype="multipart/form-data">
+            {% csrf_token %}
             
-            <form id="avatar-form" method="POST" action="{% url 'update_avatar' %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                
-                <label for="avatar-input" class="position-relative d-block mb-0" style="cursor: pointer;">
-                    
+            <div class="avatar-wrapper">
+                <div class="avatar-loading" id="avatarLoading">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                </div>
+
+                <label for="avatar-input" class="d-block w-100 h-100 m-0" style="cursor: pointer;">
                     {% if request.user.profile.profile_image %}
-                        <img src="{{ request.user.profile.profile_image.url }}" 
-                             class="rounded-circle border p-1 shadow-sm avatar-img" 
-                             width="120" height="120" 
-                             style="object-fit: cover;">
+                        <img src="{{ request.user.profile.profile_image.url }}" class="avatar-img-circle" alt="Avatar">
                     {% else %}
-                        <img src="https://via.placeholder.com/120" 
-                             class="rounded-circle border p-1 shadow-sm avatar-img" 
-                             width="120" height="120">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=1a1a1a&color=fff&size=128" class="avatar-img-circle" alt="Default Avatar">
                     {% endif %}
 
-                    <div class="avatar-overlay rounded-circle position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center">
-                        <i class="fa-solid fa-camera text-white fs-3"></i>
+                    <div class="avatar-overlay">
+                        <i class="fa-solid fa-camera text-white fs-4"></i>
                     </div>
                 </label>
-
                 <input type="file" name="profile_image" id="avatar-input" class="d-none" accept="image/*">
-            </form>
-        </div>
-        <h6 class="fw-bold">{{ request.user.first_name }} {{ request.user.last_name }}</h6>
-        <p class="text-muted small">{{ request.user.email }}</p>
+            </div>
+        </form>
+
+        <h6 class="fw-bold text-dark mb-1">{{ request.user.first_name }} {{ request.user.last_name }}</h6>
+        <p class="text-muted small mb-0">{{ request.user.email }}</p>
     </div>
-    
-    <div class="list-group list-group-flush">
+
+    <nav class="sidebar-menu">
+        
+        <a href="{% url 'user_profile' %}" class="nav-item-custom {% if active_tab == 'overview' %}active{% endif %}">
+            <i class="fa-solid fa-chart-pie"></i> Tổng quan
+        </a>
+        
+        <a href="{% url 'user_orders' %}" class="nav-item-custom {% if active_tab == 'orders' %}active{% endif %}">
+            <i class="fa-solid fa-bag-shopping"></i> Đơn mua
+        </a>
+        
+        <a href="{% url 'address_list' %}" class="nav-item-custom {% if active_tab == 'addresses' %}active{% endif %}">
+            <i class="fa-solid fa-map-location-dot"></i> Sổ địa chỉ
+        </a>
+
+        <a href="{% url 'change_password' %}" class="nav-item-custom {% if active_tab == 'change_password' %}active{% endif %}">
+            <i class="fa-solid fa-lock"></i> Đổi mật khẩu
+        </a>
+        
+        <hr class="my-2 mx-3 border-light">
+
+        <a href="{% url 'logout' %}" class="nav-item-custom text-danger">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
+        </a>
+
         {% if request.user.is_staff or request.user.is_superuser %}
-            <a href="/admin/" target="_blank" class="list-group-item list-group-item-action py-3 text-danger fw-bold bg-light">
-                <i class="fa-solid fa-user-shield me-3"></i> Trang Quản Trị
+            <a href="/admin/" target="_blank" class="nav-item-custom admin-link mt-3 justify-content-center">
+                <i class="fa-solid fa-user-shield"></i> Trang Quản Trị
             </a>
         {% endif %}
-        
-        <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'overview' %}active bg-primary text-white{% endif %}">
-            <i class="fa fa-th-large me-3"></i> Tổng quan
-        </a>
-        
-        <a href="{% url 'user_orders' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'orders' %}active bg-primary text-white{% endif %}">
-            <i class="fa fa-shopping-bag me-3"></i> Đơn mua
-        </a>
-        
-        <a href="{% url 'address_list' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'addresses' %}active bg-primary text-white{% endif %}">
-            <i class="fa fa-map-marker-alt me-3"></i> Sổ địa chỉ
-        </a>
-
-        <a href="{% url 'change_password' %}" class="list-group-item list-group-item-action py-3 {% if active_tab == 'change_password' %}active bg-primary text-white{% endif %}">
-            <i class="fa fa-key me-3"></i> Đổi mật khẩu
-        </a>
-        
-        <a href="{% url 'logout' %}" class="list-group-item list-group-item-action py-3 text-danger">
-            <i class="fa fa-sign-out-alt me-3"></i> Đăng xuất
-        </a>
-    </div>
+    </nav>
 </div>
+
 <script>
     document.getElementById('avatar-input').addEventListener('change', function() {
         if (this.files && this.files[0]) {
+            // UI Feedback: Hiện loading ngay lập tức
+            document.getElementById('avatarLoading').style.display = 'flex';
             
-            document.querySelector('.avatar-img').style.opacity = '0.6';
-            
-            document.getElementById('avatar-form').submit();
+            // Submit form sau 500ms (để user kịp nhìn thấy hiệu ứng loading)
+            setTimeout(() => {
+                document.getElementById('avatar-form').submit();
+            }, 500);
         }
     });
 </script>

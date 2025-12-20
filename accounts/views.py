@@ -6,15 +6,17 @@ from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 import json
 from django.db.models import Count
+from django.contrib.auth import update_session_auth_hash
 # --- IMPORT UTILS (LOGIC TÍNH TOÁN CHUẨN) ---
 from .utils import calculate_cart_total 
 
 # Import Models & Forms
 from accounts.forms import AddressForm
-from orders.models import Order
+from orders.models import Order, OrderProduct
 from products.models import Variant, Coupon
 from .models import Address, Cart, CartItems, Profile
 
+from django.contrib.auth.forms import PasswordChangeForm
 
 
 def register_page(request):
@@ -332,10 +334,19 @@ def user_orders(request):
     return render(request, 'accounts/orders.html', {'orders': orders})
 
 @login_required(login_url='login')
-def order_detail(request, order_uid):
-    order = get_object_or_404(Order, uid=order_uid, user=request.user)
-    
-    return render(request, 'accounts/order_detail.html', {'order': order})
+def order_detail(request, order_number):
+    try:
+        order = Order.objects.get(order_number=order_number, user=request.user)
+        order_items = OrderProduct.objects.filter(order=order)
+
+        context = {
+            'order': order,
+            'order_items': order_items,
+        }
+        return render(request, 'accounts/order_detail.html', context)
+    except Order.DoesNotExist:
+        
+        return redirect('user_orders')
 
 
 @login_required(login_url='login')
@@ -371,3 +382,30 @@ def update_avatar(request):
             profile.save()
             messages.success(request, "Cập nhật avatar thành cong.")
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
+@login_required(login_url='login')
+def change_password(request):
+    
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        
+        if form.is_valid():
+            user = form.save()
+            
+            
+            update_session_auth_hash(request, user)  
+            
+            messages.success(request, 'Mật khẩu của bạn đã được thay đổi thành công!')
+            return redirect('user_profile') 
+        else:
+            
+            messages.error(request, 'Vui lòng kiểm tra lại thông tin bên dưới.')
+    else:
+        
+        form = PasswordChangeForm(request.user)
+        
+    context = {
+        'form': form,
+        
+    }
+    return render(request, 'accounts/change_password.html', context)

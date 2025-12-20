@@ -1,6 +1,6 @@
 
 from django.urls import path 
-from accounts.views import add_address,user_orders,update_avatar,order_detail, add_to_cart, address_list, delete_address, edit_address,login_page,register_page,activate_email,cart,apply_coupon,remove_item,remove_coupon, set_default_address,update_cart,logout_view,save_address,user_dashboard
+from accounts.views import add_address,user_orders,change_password,update_avatar,order_detail, add_to_cart, address_list, delete_address, edit_address,login_page,register_page,activate_email,cart,apply_coupon,remove_item,remove_coupon, set_default_address,update_cart,logout_view,save_address,user_dashboard
 from django.contrib.auth import views as auth_views
 
 
@@ -13,7 +13,7 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/',auth_views.PasswordResetConfirmView.as_view(template_name='accounts/password_reset_form.html'),name='password_reset_confirm'),
     path('reset_password_complete/',auth_views.PasswordResetCompleteView.as_view(template_name='accounts/password_reset_done.html'),name='password_reset_complete'),
     path('change_password/',auth_views.PasswordChangeView.as_view(template_name='accounts/change_password.html'),name='change_password'),
-    path('change_password_done/',auth_views.PasswordChangeDoneView.as_view(template_name='accounts/change_password_done.html'),name='change_password_done'),
+    path('change_password_done/',change_password,name='password_change_done'),
     path('update-avatar/', update_avatar, name='update_avatar'),
     
     
@@ -35,6 +35,6 @@ urlpatterns = [
 
     path('profile/', user_dashboard, name='user_profile'),
     path('profile/orders/', user_orders, name='user_orders'),
-    path('profile/orders/<uuid:order_uid>/', order_detail, name='order_detail'),
+    path('profile/orders/<str:order_number>/', order_detail, name='order_detail'),
     path('profile/addresses/', address_list, name='address_list'),
 ]

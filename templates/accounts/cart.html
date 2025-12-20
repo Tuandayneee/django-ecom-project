@@ -2,174 +2,190 @@
 {% load static %}
 {% load humanize %} 
 
+{% block title %}Giỏ hàng của bạn - Urban Vibe{% endblock %}
+
 {% block start %}
-<div class="container mt-5 mb-5">
-  <h2 class="mb-4 fw-bold">Giỏ hàng của bạn</h2>
 
-  {% if cart_items %}
-  <div class="row">
-    <div class="col-lg-8">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-          <table class="table align-middle mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="ps-4">Sản phẩm</th>
-                <th>Giá đơn vị</th>
-                <th>Số lượng</th>
-                <th>Thành tiền</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for item in cart_items %}
-              <tr id="row-{{ item.uid }}">
-                <td class="ps-4">
-                  <div class="d-flex align-items-center">
-                    <div style="width: 80px; height: 80px; flex-shrink: 0" class="me-3 position-relative">
-                        {% if item.variant.image %}
-                            <img src="{{ item.variant.image.url }}" class="img-fluid rounded border" 
-                                 style="width: 100%; height: 100%; object-fit: cover" />
-                        {% elif item.variant.product.product_images.first %}
-                            <img src="{{ item.variant.product.product_images.first.image.url }}" class="img-fluid rounded border" 
-                                 style="width: 100%; height: 100%; object-fit: cover" />
-                        {% else %}
-                            <img src="https://via.placeholder.com/80" class="img-fluid rounded border" />
-                        {% endif %}
-                    </div>
 
-                    <div>
-                      <a href="{% url 'product' item.variant.product.slug %}" class="text-decoration-none text-dark fw-bold">
-                        {{ item.variant.product.product_name }}
-                      </a>
-                      <div class="small text-muted mt-1">
-                        {% if item.variant.sku %}<small>SKU: {{ item.variant.sku }}</small><br>{% endif %}
-                        
-                        {% if item.variant.size %} 
-                            <span class="badge bg-light text-dark border">Size: {{ item.variant.size.size_name }}</span> 
-                        {% endif %}
-                        {% if item.variant.color %} 
-                            <span class="badge bg-light text-dark border">Màu: {{ item.variant.color.color_name }}</span> 
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                
-                <td>
-                    {% if item.variant.price > 0 %}
-                        {{ item.variant.price|intcomma }} đ
-                    {% else %}
-                        {{ item.variant.product.price|intcomma }} đ
-                    {% endif %}
-                </td>
-                
-                <td>
-                  <div class="input-group input-group-sm" style="width: 110px">
-                    <button class="btn btn-outline-secondary btn-update" data-action="decrease" data-uid="{{ item.uid }}">-</button>
-                    <input type="text" class="form-control text-center quantity-input" 
-                           value="{{ item.quantity }}" readonly 
-                           id="qty-{{ item.uid }}" 
-                           data-old-value="{{ item.quantity }}" />
-                    <button class="btn btn-outline-secondary btn-update" data-action="increase" data-uid="{{ item.uid }}">+</button>
-                  </div>
-                </td>
-                
-                <td class="fw-bold text-primary" id="item-total-{{ item.uid }}">
-                  {{ item.get_product_price|intcomma }} đ
-                </td>
-                
-                <td>
-                  <a href="{% url 'remove_item' item.uid %}" class="text-danger" onclick="return confirm('Bạn chắc chắn muốn xóa sản phẩm này?')">
-                    <i class="fa-solid fa-trash"></i>
-                  </a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <div class="col-lg-4 mt-4 mt-lg-0">
-      <div class="card border-0 shadow-sm position-sticky" style="top: 20px;">
-        <div class="card-body">
-          <h5 class="card-title mb-3 fw-bold">Tổng đơn hàng</h5>
-          
-          <div class="d-flex justify-content-between mb-2">
-            <span>Tạm tính:</span>
-            <span id="cart-subtotal" class="fw-bold">{{ subtotal|intcomma }} đ</span>
-          </div>
-          
-          <div class="d-flex justify-content-between mb-2">
-            <span>Phí giao hàng:</span>
-            <span id="cart-shipping">
-                {% if shipping_fee > 0 %}
-                    + {{ shipping_fee|intcomma }} đ
-                    {% if has_default_address %}
-                        <br><small class="text-success" style="font-size: 11px;">(Địa chỉ mặc định)</small>
-                    {% else %}
-                        <br><small class="text-muted" style="font-size: 11px;">(Tạm tính)</small>
-                    {% endif %}
-                {% else %}
-                    <span class="text-success">Miễn phí</span>
-                {% endif %}
-            </span>
-          </div>
-
-          {% if discount > 0 %}
-          <div class="d-flex justify-content-between mb-2 text-success">
-            <span>Giảm giá:</span>
-            <span id="cart-discount">- {{ discount|intcomma }} đ</span>
-          </div>
-          {% endif %}
-          
-          {% for coupon in cart.coupons.all %}
-          <div class="alert alert-success p-2 d-flex justify-content-between align-items-center mb-2">
-            <small><i class="fa-solid fa-tag me-1"></i> Mã: <strong>{{ coupon.coupon_code }}</strong></small>
-            <a href="{% url 'remove_coupon' coupon.id %}" class="text-danger fw-bold text-decoration-none" title="Gỡ mã">&times;</a>
-          </div>
-          {% endfor %}
-
-          <hr />
-          
-          <div class="d-flex justify-content-between mb-4">
-            <strong class="fs-5">Tổng cộng:</strong>
-            <strong class="fs-5 text-danger" id="cart-total">{{ total|intcomma }} đ</strong>
-          </div>
-
-          <form method="POST" action="{% url 'apply_coupon' %}" class="mb-3">
-            {% csrf_token %}
-            <div class="input-group">
-              <input type="text" name="coupon_code" class="form-control" placeholder="Mã giảm giá" required />
-              <button class="btn btn-outline-primary" type="submit">Áp dụng</button>
+<div class="cart-page-wrapper">
+    <div class="container pt-5">
+        
+        <div class="d-flex align-items-end justify-content-between mb-5">
+            <div>
+                <h2 class="fw-bold mb-1">Giỏ hàng</h2>
+                <p class="text-muted mb-0">{{ cart_items.count }} sản phẩm trong giỏ</p>
             </div>
-          </form>
-
-          <a href="{% url 'orders:checkout' %}" class="btn btn-primary w-100 py-2 fw-bold text-uppercase">Thanh toán ngay</a>
-          <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 py-2 mt-2">Tiếp tục mua sắm</a>
+            <a href="{% url 'home' %}" class="text-decoration-none fw-bold text-dark d-none d-md-block">
+                <i class="fa-solid fa-arrow-left me-2"></i> Tiếp tục mua sắm
+            </a>
         </div>
-      </div>
+
+        {% if cart_items %}
+        <div class="row g-5">
+            <div class="col-lg-8">
+                <div class="bg-white rounded-4 shadow-sm p-4">
+                    <div class="table-responsive">
+                        <table class="table cart-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 45%;">Sản phẩm</th>
+                                    <th style="width: 15%; text-align: center;">Giá</th>
+                                    <th style="width: 20%; text-align: center;">Số lượng</th>
+                                    <th style="width: 15%; text-align: right;">Tổng</th>
+                                    <th style="width: 5%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart_items %}
+                                <tr id="row-{{ item.uid }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <a href="{% url 'product' item.variant.product.slug %}">
+                                                {% if item.variant.image %}
+                                                    <img src="{{ item.variant.image.url }}" class="cart-item-img me-3">
+                                                {% elif item.variant.product.product_images.first %}
+                                                    <img src="{{ item.variant.product.product_images.first.image.url }}" class="cart-item-img me-3">
+                                                {% else %}
+                                                    <img src="https://via.placeholder.com/100x120" class="cart-item-img me-3">
+                                                {% endif %}
+                                            </a>
+                                            
+                                            <div>
+                                                <a href="{% url 'product' item.variant.product.slug %}" class="cart-item-title">
+                                                    {{ item.variant.product.product_name }}
+                                                </a>
+                                                
+                                                {% if item.variant.color or item.variant.size %}
+                                                <div class="d-flex flex-wrap">
+                                                    {% if item.variant.color %}
+                                                        <span class="variant-badge">{{ item.variant.color.color_name }}</span>
+                                                    {% endif %}
+                                                    {% if item.variant.size %}
+                                                        <span class="variant-badge">{{ item.variant.size.size_name }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                                
+                                                {% if item.variant.sku %}
+                                                    <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">SKU: {{ item.variant.sku }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="text-center text-muted fw-bold">
+                                        {% if item.variant.price > 0 %}
+                                            {{ item.variant.price|intcomma }} đ
+                                        {% else %}
+                                            {{ item.variant.product.price|intcomma }} đ
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <div class="qty-container mx-auto">
+                                            <button class="qty-btn btn-update" data-action="decrease" data-uid="{{ item.uid }}">-</button>
+                                            <input type="text" class="qty-input" value="{{ item.quantity }}" readonly id="qty-{{ item.uid }}">
+                                            <button class="qty-btn btn-update" data-action="increase" data-uid="{{ item.uid }}">+</button>
+                                        </div>
+                                    </td>
+
+                                    <td class="text-end fw-bold text-dark" id="item-total-{{ item.uid }}">
+                                        {{ item.get_product_price|intcomma }} đ
+                                    </td>
+
+                                    <td class="text-end">
+                                        <a href="{% url 'remove_item' item.uid %}" class="text-muted hover-danger" onclick="return confirm('Xóa sản phẩm này?')" data-bs-toggle="tooltip" title="Xóa">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="summary-card">
+                    <h4 class="fw-bold mb-4">Tổng đơn hàng</h4>
+
+                    <div class="summary-row">
+                        <span>Tạm tính</span>
+                        <span class="fw-bold text-dark" id="cart-subtotal">{{ subtotal|intcomma }} đ</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Phí vận chuyển</span>
+                        <span class="text-end" id="cart-shipping">
+                            {% if shipping_fee > 0 %}
+                                {{ shipping_fee|intcomma }} đ
+                                {% if not has_default_address %}
+                                    <br><small class="text-muted fst-italic">(Tạm tính)</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-success fw-bold">Miễn phí</span>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    {% if discount > 0 %}
+                    <div class="summary-row text-success">
+                        <span>Giảm giá</span>
+                        <span id="cart-discount">- {{ discount|intcomma }} đ</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% for coupon in cart.coupons.all %}
+                    <div class="alert alert-success d-flex justify-content-between align-items-center py-2 px-3 mt-3 mb-0" style="font-size: 0.9rem;">
+                        <span><i class="fa-solid fa-ticket me-2"></i> {{ coupon.coupon_code }}</span>
+                        <a href="{% url 'remove_coupon' coupon.id %}" class="text-success fw-bold text-decoration-none">&times;</a>
+                    </div>
+                    {% endfor %}
+
+                    <div class="summary-row total">
+                        <span>Tổng cộng</span>
+                        <span class="text-danger" id="cart-total">{{ total|intcomma }} đ</span>
+                    </div>
+
+                    <a href="{% url 'orders:checkout' %}" class="btn btn-checkout">
+                        Thanh toán ngay
+                    </a>
+                    
+                    <div class="mt-4 pt-4 border-top">
+                        <label class="fw-bold small mb-2 text-uppercase text-muted">Mã giảm giá</label>
+                        <form method="POST" action="{% url 'apply_coupon' %}" class="coupon-group">
+                            {% csrf_token %}
+                            <input type="text" name="coupon_code" placeholder="Nhập mã coupon...">
+                            <button type="submit">ÁP DỤNG</button>
+                        </form>
+                    </div>
+
+                    
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <div class="bg-white rounded-4 shadow-sm empty-cart-box">
+            <div class="empty-cart-icon">
+                <i class="fa-solid fa-basket-shopping"></i>
+            </div>
+            <h3 class="fw-bold mb-3">Giỏ hàng của bạn đang trống</h3>
+            <p class="text-muted mb-4">Có vẻ như bạn chưa thêm sản phẩm nào vào giỏ hàng.<br>Khám phá các sản phẩm mới nhất của chúng tôi ngay!</p>
+            <a href="{% url 'home' %}" class="btn btn-dark px-5 py-3 fw-bold rounded-pill">
+                QUAY LẠI CỬA HÀNG
+            </a>
+        </div>
+        {% endif %}
+
     </div>
-  </div>
-  
-  {% else %}
-  <div class="text-center py-5">
-    <div class="mb-4">
-      <i class="bi bi-cart-x display-1 text-muted" style="font-size: 4rem;"></i>
-    </div>
-    <h3>Giỏ hàng trống</h3>
-    <p class="text-muted">Bạn chưa thêm sản phẩm nào vào giỏ hàng.</p>
-    <a href="{% url 'home' %}" class="btn btn-primary mt-3 px-4 py-2">Mua sắm ngay</a>
-  </div>
-  {% endif %}
 </div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     
-    // Hàm định dạng tiền tệ
     function formatCurrency(amount) {
         return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
     }
@@ -188,16 +204,18 @@
         if (action === "increase") newQty++;
         if (action === "decrease") newQty--;
 
-        if (newQty < 1) return; // Không cho giảm dưới 1
+        if (newQty < 1) return;
 
-        // Disable nút trong lúc chờ server trả lời để tránh spam click
+        // UI Feedback: Disable nút và làm mờ nhẹ input để người dùng biết đang xử lý
+        const row = document.getElementById(`row-${uid}`);
+        row.style.opacity = '0.5';
         this.disabled = true;
         
-        updateCartItem(uid, newQty, input, this);
+        updateCartItem(uid, newQty, input, this, row);
       });
     });
 
-    function updateCartItem(uid, qty, inputElem, btnElem) {
+    function updateCartItem(uid, qty, inputElem, btnElem, rowElem) {
       fetch("{% url 'update_cart' %}", {
         method: "POST",
         headers: {
@@ -208,43 +226,33 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          // Mở lại nút bấm
+          // Re-enable UI
           btnElem.disabled = false;
+          rowElem.style.opacity = '1';
 
           if (data.status === "Success") {
-            // 1. Cập nhật số lượng mới vào ô input
             inputElem.value = qty;
-            inputElem.dataset.oldValue = qty; // Lưu lại giá trị chuẩn
+            inputElem.dataset.oldValue = qty;
             
-            // 2. Cập nhật thành tiền của item đó
             const itemTotalElem = document.getElementById(`item-total-${uid}`);
             if (itemTotalElem) itemTotalElem.innerText = formatCurrency(data.item_total);
             
-            // 3. Cập nhật các tổng tiền
             document.getElementById(`cart-subtotal`).innerText = formatCurrency(data.subtotal);
             document.getElementById(`cart-total`).innerText = formatCurrency(data.cart_total);
             
-            // 4. Cập nhật Discount nếu có
             const discountElem = document.getElementById(`cart-discount`);
             if (discountElem) {
               discountElem.innerText = `-${formatCurrency(data.discount)}`;
             }
-
-            // 5. Cập nhật Ship nếu có (Optional)
-            // ... logic ship giữ nguyên ...
-
           } else {
-            // --- XỬ LÝ LỖI (VÍ DỤ: HẾT HÀNG) ---
             alert(data.message || "Lỗi cập nhật giỏ hàng");
-            
-            // Quan trọng: Revert số lượng về giá trị cũ hợp lệ
-            // Ví dụ: Đang là 5, bấm lên 6, server báo kho chỉ còn 5 -> Input quay về 5
             inputElem.value = inputElem.dataset.oldValue;
           }
         })
         .catch((err) => {
             console.error(err);
             btnElem.disabled = false;
+            rowElem.style.opacity = '1';
             alert("Đã xảy ra lỗi kết nối");
         });
     }

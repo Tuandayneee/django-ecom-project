@@ -2,139 +2,159 @@
 {% load static %}
 {% load humanize %}
 
+{% block title %}Đặt hàng thành công - Urban Vibe{% endblock %}
+
 {% block start %}
 
-<style>
-    /* Container chính */
-    .success-icon-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
 
-    /* Vòng tròn xanh */
-    .checkmark {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: block;
-        stroke-width: 2;
-        stroke: #198754; /* Màu xanh success */
-        stroke-miterlimit: 10;
-        box-shadow: inset 0px 0px 0px #198754;
-        animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
-    }
-
-    /* Đường viền chạy vòng quanh */
-    .checkmark__circle {
-        stroke-dasharray: 166;
-        stroke-dashoffset: 166;
-        stroke-width: 2;
-        stroke-miterlimit: 10;
-        stroke: #198754;
-        fill: none;
-        animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-    }
-
-    /* Dấu tích V */
-    .checkmark__check {
-        transform-origin: 50% 50%;
-        stroke-dasharray: 48;
-        stroke-dashoffset: 48;
-        animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
-    }
-
-    /* Hiệu ứng chuyển động */
-    @keyframes stroke {
-        100% { stroke-dashoffset: 0; }
-    }
-    @keyframes scale {
-        0%, 100% { transform: none; }
-        50% { transform: scale3d(1.1, 1.1, 1); }
-    }
-    @keyframes fill {
-        100% { box-shadow: inset 0px 0px 0px 5px #d1e7dd; }
-    }
-</style>
-<section class="section-content padding-y bg-light" style="min-height: 80vh; padding-top: 50px;">
+<div class="success-wrapper">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
+        
+        <div class="text-center mb-5">
+            <div class="checkmark-circle">
+                <i class="fa-solid fa-check icon-check"></i>
+            </div>
+            <h2 class="fw-bold mb-2">Cảm ơn bạn đã đặt hàng!</h2>
+            <p class="text-muted">Đơn hàng của bạn đã được tiếp nhận và đang xử lý.</p>
+            <div class="mt-3">
+                <a href="{% url 'home' %}" class="btn btn-dark rounded-pill px-4 py-2 fw-bold">Tiếp tục mua sắm</a>
                 
-                <div class="card border-0 shadow-lg rounded-3">
-                    <div class="card-body p-5">
-                        
-                        <div class="text-center mb-4">
-                            <div class="success-animation">
-                                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" /><path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" /></svg>
-                            </div>
-                            <h2 class="fw-bold text-success">Đặt hàng thành công!</h2>
-                            <p class="text-muted">Cảm ơn bạn đã mua sắm. Đơn hàng của bạn đang được xử lý.</p>
-                        </div>
+            </div>
+        </div>
 
-                        <div class="bg-light p-4 rounded mb-4">
-                            <div class="d-flex justify-content-between mb-2 border-bottom pb-2">
-                                <span class="text-muted">Mã đơn hàng:</span>
-                                <span class="fw-bold text-primary">#{{ order.order_number }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Ngày đặt:</span>
-                                <span class="fw-bold">{{ order.created_at|date:"d/m/Y H:i" }}</span>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Phương thức thanh toán:</span>
-                                <span class="fw-bold text-uppercase">
-                                    {% if order.payment %}
-                                        {{ order.payment.payment_method }}
-                                    {% else %}
-                                        COD
-                                    {% endif %}
-                                </span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <span class="fw-bold fs-5">Tổng cộng:</span>
-                                <span class="fw-bold fs-4 text-danger">{{ order.grand_total|intcomma }} đ</span>
-                            </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="receipt-card">
+                    <div class="receipt-header">
+                        <div>
+                            <span style="opacity: 0.7; font-size: 0.85rem;">Mã đơn hàng</span>
+                            <h5 class="m-0 fw-bold">#{{ order.order_number }}</h5>
                         </div>
-
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-2"><i class="fa fa-map-marker-alt text-danger me-2"></i>Thông tin nhận hàng</h6>
-                            <p class="mb-1"><strong>{{ order.full_name }}</strong> | {{ order.phone }}</p>
-                            <p class="text-muted small mb-0">{{ order.address }}, {{ order.city }}</p>
+                        <div class="text-end">
+                            <span style="opacity: 0.7; font-size: 0.85rem;">Ngày đặt</span>
+                            <div class="fw-bold">{{ order.created_at|date:"d/m/Y H:i" }}</div>
                         </div>
+                    </div>
 
-                        {% if order_items %}
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-2"><i class="fa fa-box text-primary me-2"></i>Sản phẩm</h6>
-                            <ul class="list-group list-group-flush border rounded">
-                                {% for item in order_items %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge bg-light text-dark border me-2">{{ item.quantity }}x</span>
-                                        <span class="text-truncate" style="max-width: 200px;">{{ item.product.product_name }}</span>
+                    <div class="row g-0">
+                        <div class="col-lg-7">
+                            <div class="receipt-body">
+                                <div class="row mb-5">
+                                    <div class="col-md-6 mb-4 mb-md-0">
+                                        <div class="info-label">Địa chỉ nhận hàng</div>
+                                        <div class="info-value">{{ order.full_name }}</div>
+                                        <div class="text-muted small mt-1">{{ order.phone }}</div>
+                                        <div class="text-muted small" style="line-height: 1.4;">
+                                            {{ order.shipping_address }}
+                                        </div>
                                     </div>
-                                    <span class="fw-bold small">{{ item.product_price|intcomma }} đ</span>
-                                </li>
+                                    <div class="col-md-6">
+                                        <div class="info-label">Phương thức thanh toán</div>
+                                        <div class="info-value text-uppercase">
+                                            {% if order.payment %}
+                                                {{ order.payment.payment_method }}
+                                                {% if order.payment.status == 'Completed' %}
+                                                    <span class="badge bg-success ms-2" style="font-size: 0.6rem; vertical-align: middle;">Đã thanh toán</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem; vertical-align: middle;">Chờ thanh toán</span>
+                                                {% endif %}
+                                            {% else %}
+                                                COD (Thanh toán khi nhận hàng)
+                                            {% endif %}
+                                        </div>
+                                        <div class="mt-3">
+                                            <div class="info-label">Trạng thái đơn hàng</div>
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-3 py-2 rounded-pill">
+                                                {{ order.status }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-bold border-bottom pb-2 mb-3 text-uppercase small" style="letter-spacing: 1px;">Sản phẩm đã đặt</h6>
+                                
+                                {% for item in order_items %}
+                                <div class="order-item-row">
+                                    {% if item.variant.image %}
+                                        <img src="{{ item.variant.image.url }}" class="item-thumb">
+                                    {% elif item.variant.product.product_images.first %}
+                                        <img src="{{ item.variant.product.product_images.first.image.url }}" class="item-thumb">
+                                    {% else %}
+                                        <img src="https://via.placeholder.com/60" class="item-thumb">
+                                    {% endif %}
+
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-bold text-dark">{{ item.product.product_name }}</span>
+                                            <span class="fw-bold">{{ item.product_price|intcomma }} đ</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <small class="text-muted">
+                                                {% if item.variant.size %}{{ item.variant.size.size_name }}{% endif %}
+                                                {% if item.variant.color %}/ {{ item.variant.color.color_name }}{% endif %}
+                                            </small>
+                                            <small class="text-muted">x {{ item.quantity }}</small>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% endfor %}
-                            </ul>
-                        </div>
-                        {% endif %}
 
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'home' %}" class="btn btn-primary btn-lg">
-                                <i class="fa fa-shopping-cart me-2"></i> Tiếp tục mua sắm
-                            </a>
-                            <a href="{% url 'user_orders' %}" class="btn btn-outline-secondary">
-                                Xem lịch sử đơn hàng
-                            </a>
+                            </div>
                         </div>
 
+                        <div class="col-lg-5">
+                            <div class="summary-box">
+                                <h6 class="fw-bold mb-4 text-uppercase small" style="letter-spacing: 1px;">Chi tiết thanh toán</h6>
+                                
+                                <div class="summary-row">
+                                    <span>Tạm tính</span>
+                                    <span>{{ order.order_total|intcomma }} đ</span>
+                                </div>
+                                
+                                <div class="summary-row">
+                                    <span>Phí vận chuyển</span>
+                                    <span>
+                                        {% if order.shipping_fee > 0 %}
+                                            + {{ order.shipping_fee|intcomma }} đ
+                                        {% else %}
+                                            Miễn phí
+                                        {% endif %}
+                                    </span>
+                                </div>
+
+                                {% if order.tax > 0 %}
+                                <div class="summary-row">
+                                    <span>Thuế</span>
+                                    <span>+ {{ order.tax|intcomma }} đ</span>
+                                </div>
+                                {% endif %}
+
+                                {% if order.discount > 0 %}
+                                <div class="summary-row text-success">
+                                    <span>Giảm giá</span>
+                                    <span>- {{ order.discount|intcomma }} đ</span>
+                                </div>
+                                {% endif %}
+
+                                <div class="summary-row summary-total">
+                                    <span>Tổng cộng</span>
+                                    <span class="text-primary">{{ order.grand_total|intcomma }} đ</span>
+                                </div>
+                                
+                                <div class="alert alert-light border mt-4 small text-muted">
+                                    <i class="fa-regular fa-circle-question me-1"></i>
+                                    Mọi thắc mắc về đơn hàng vui lòng liên hệ hotline <strong class="text-dark">0909.888.XXX</strong> hoặc email <strong class="text-dark">cskh@urbanvibe.vn</strong>.
+                                </div>
+                                
+                                <div class="d-grid mt-4">
+                                    <a href="{% url 'user_orders' %}" class="btn btn-outline-dark">Xem lịch sử đơn hàng</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</section>
-
+</div>
 {% endblock %}

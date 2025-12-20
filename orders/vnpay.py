@@ -21,7 +21,7 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-# --- 1. GỬI YÊU CẦU SANG VNPAY ---
+
 def vnpay_payment(request):
     # Lấy địa chỉ từ Session (đã lưu ở bước Checkout)
     address_uid = request.session.get('shipping_address_uid')
@@ -105,7 +105,7 @@ def payment_return(request):
                         payment_id=vnp_TxnRef, # Lưu mã đơn của VNPay
                         payment_method='VNPay',
                         amount_paid=str(cart_data['total']),
-                        status='Completed' # <--- QUAN TRỌNG: Đã trả tiền
+                        status='Completed' 
                     )
 
                     # 3. Tạo Order
@@ -121,7 +121,7 @@ def payment_return(request):
                         shipping_fee=cart_data['shipping_fee'],
                         coupon_discount=cart_data['discount'],
                         tax=cart_data['tax'],
-                        status='Accepted', # Đã xác nhận vì đã trả tiền
+                        status='Accepted', #
                         is_ordered=True
                     )
 

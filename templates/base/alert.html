@@ -1,40 +1,107 @@
 {% if messages %}
-    <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; width: 300px;">
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
-                
-                {{ message }}
-                
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Tìm tất cả các alert trong container
-            const alerts = document.querySelectorAll('#message-container .alert');
-            
-            if (alerts.length > 0) {
-                // Đặt thời gian chờ (ví dụ: 4000ms = 4 giây)
-                setTimeout(function() {
-                    alerts.forEach(function(alert) {
-                        // Cách 1: Dùng Bootstrap API (Nếu dự án có file bootstrap.js)
-                        if (typeof bootstrap !== 'undefined') {
-                            var bsAlert = new bootstrap.Alert(alert);
-                            bsAlert.close();
-                        } 
-                        // Cách 2: JS thuần (Dùng cho mọi trường hợp)
-                        else {
-                            alert.style.transition = "opacity 0.5s ease";
-                            alert.style.opacity = "0";
-                            setTimeout(function() {
-                                alert.remove();
-                            }, 500); // Xóa khỏi DOM sau khi mờ dần
-                        }
-                    });
-                }, 4000); 
-            }
+<div class="custom-toast-container">
+    {% for message in messages %}
+    <div class="custom-toast" data-type="{{ message.tags }}">
+        <div class="toast-content-wrapper">
+            <div class="toast-icon">
+                {% if message.tags == 'success' %}
+                    <i class="fa-solid fa-circle-check"></i>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <i class="fa-solid fa-circle-xmark"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                {% else %}
+                    <i class="fa-solid fa-circle-info"></i>
+                {% endif %}
+            </div>
+
+            <div class="toast-message">
+                {{ message|safe }}
+            </div>
+
+            <button class="toast-close-btn" onclick="removeToast(this.closest('.custom-toast'))">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="toast-progress">
+            <div class="toast-progress-bar"></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const toasts = document.querySelectorAll('.custom-toast');
+        
+        toasts.forEach((toast, index) => {
+            // Hiệu ứng xuất hiện so le (nếu có nhiều tin nhắn cùng lúc)
+            setTimeout(() => {
+                toast.classList.add('active');
+                initToastLogic(toast);
+            }, index * 200);
         });
-    </script>
+    });
+
+    function initToastLogic(toast) {
+        const DURATION = 5000; // 5 giây
+        const progressBar = toast.querySelector('.toast-progress-bar');
+        
+        let startTime = Date.now();
+        let remaining = DURATION;
+        let timerId;
+        let isPaused = false;
+
+        // Hàm cập nhật thanh Progress Bar
+        const updateProgress = () => {
+            if (isPaused) return;
+
+            const elapsed = Date.now() - startTime;
+            const percentage = Math.max(0, 100 - (elapsed / DURATION) * 100);
+            
+            if (progressBar) {
+                progressBar.style.transform = `scaleX(${percentage / 100})`;
+            }
+
+            if (elapsed >= DURATION) {
+                removeToast(toast);
+            } else {
+                timerId = requestAnimationFrame(updateProgress);
+            }
+        };
+
+        // Bắt đầu chạy
+        timerId = requestAnimationFrame(updateProgress);
+
+        // --- PAUSE ON HOVER (Tính năng Senior) ---
+        toast.addEventListener('mouseenter', () => {
+            isPaused = true;
+            cancelAnimationFrame(timerId);
+            // Tính toán thời gian còn lại khi pause
+            remaining -= (Date.now() - startTime);
+        });
+
+        toast.addEventListener('mouseleave', () => {
+            isPaused = false;
+            // Reset start time để chạy tiếp phần remaining
+            startTime = Date.now() - (DURATION - remaining);
+            timerId = requestAnimationFrame(updateProgress);
+        });
+    }
+
+    // Hàm xóa Toast
+    function removeToast(toast) {
+        toast.classList.remove('active'); // Slide out
+        toast.classList.add('closing');
+        
+        // Đợi animation CSS chạy xong (0.4s) rồi mới xóa khỏi DOM
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 400); 
+    }
+</script>
 {% endif %}

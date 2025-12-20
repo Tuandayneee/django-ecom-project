@@ -5,9 +5,12 @@ from django.contrib import messages
 from django.http import JsonResponse
 import json
 from datetime import datetime
-
+from django.db import transaction
 from django.db.models import F
 from accounts.models import Cart, Address
+from orders.models import Order, OrderProduct, Payment
+from orders.utils import get_user_shipping_fee, calculate_cart_total
+from products.models import Variant, Product
 from ecom.settings import EMAIL_HOST_USER
 from orders.utils import get_user_shipping_fee
 from .models import Order, OrderProduct, Payment
@@ -48,13 +51,16 @@ def checkout(request):
                     self.quantity = qty
                     self.get_product_price = variant.price * qty
 
+            # Tính phí ship dựa trên subtotal
+            shipping_fee = get_user_shipping_fee(request.user, total_price)
+            
             cart_data = {
                 'cart_items': [MockCartItem(variant, qty)],
                 'subtotal': total_price,
-                'shipping_fee': 0, # Mặc định 0, AJAX sẽ cập nhật sau
+                'shipping_fee': shipping_fee,
                 'discount': 0,
                 'tax': 0,
-                'total': total_price
+                'total': total_price + shipping_fee
             }
         except Variant.DoesNotExist:
             del request.session['direct_buy_item']
@@ -100,6 +106,8 @@ def checkout(request):
     context = {
         'cart_data': cart_data,
         'addresses': addresses,
+        'free_shipping_threshold': 1000000,
+        'remaining_for_free_shipping': max(0, 1000000 - cart_data['subtotal'])
     }
     return render(request, 'orders/checkout.html', context)
 
@@ -182,7 +190,7 @@ def handle_cod_payment(request, cart_obj, address_uid, direct_buy_data=None):
                 coupon_discount=discount,
                 tax=tax,
                 status='Pending',
-                is_ordered=True,
+                is_ordered=False,
                 created_at=timestamp
             )
 

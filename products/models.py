@@ -20,6 +20,7 @@ class Category(BaseModel):
 
 class ColorVariant(BaseModel):
     color_name = models.CharField(max_length=100)
+    color_code = models.CharField(max_length=7, default='#000000', help_text='Hex color code (e.g., #FF5733)')
     
 
     def __str__(self):
