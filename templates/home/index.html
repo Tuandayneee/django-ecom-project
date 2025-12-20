@@ -80,33 +80,7 @@
     </div>
 </section>
 
-{% if categories %}
-<section class="cat-section bg-white">
-    <div class="container">
-        <div class="d-flex justify-content-center flex-wrap gap-4 gap-md-5">
-            <a href="{% url 'home' %}" class="cat-item">
-                <div class="cat-img-box">
-                    <i class="fa fa-th-large fa-lg"></i>
-                </div>
-                <span class="cat-name">Tất cả</span>
-            </a>
 
-            {% for category in categories %}
-            <a href="{% url 'home' %}?category={{ category.slug }}" class="cat-item">
-                <div class="cat-img-box">
-                    {% if category.category_image %}
-                        <img src="{{ category.category_image.url }}" alt="{{ category.category_name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                    {% else %}
-                        <i class="fa fa-tag text-muted"></i>
-                    {% endif %}
-                </div>
-                <span class="cat-name">{{ category.category_name }}</span>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
 
 <section class="product-grid bg-white pt-5">
     <div class="container">
