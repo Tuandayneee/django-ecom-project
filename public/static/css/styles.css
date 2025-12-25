@@ -174,8 +174,22 @@ ul {
   margin-right: 10px;
   font-size: 16px;
 }
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 20px;
+  font-size: 1rem;
+  color: #333;
+  height: 100%;
+}
+.search-input::placeholder {
+  color: #999;
+  font-weight: 300;
+}
 .input-custom,
-.search-input,
 .coupon-input {
   width: 100%;
   padding: 12px 15px;
@@ -908,22 +922,43 @@ span {
 }
 .search-box-senior {
   position: relative;
-  max-width: 450px;
+  width: 100%;
+  max-width: 500px;
+  height: 55px;
+  background: #fff;
+  border-radius: 50px;
+  border: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+.search-box-senior:focus-within {
+  border-color: #000;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 .search-btn {
-  position: absolute;
-  right: 5px;
-  top: 5px;
-  bottom: 5px;
-  background: var(--primary-dark);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background-color: #111;
   color: #fff;
   border: none;
-  padding: 0 25px;
-  border-radius: 4px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 2px;
 }
 .search-btn:hover {
-  background: #d4a373;
+  background-color: #333;
+  transform: scale(1.05) rotate(10deg);
+}
+.search-btn i {
+  font-size: 1rem;
 }
 /* Slider Fix: Giới hạn chiều cao và hiển thị full ảnh */
 .hero-slider {

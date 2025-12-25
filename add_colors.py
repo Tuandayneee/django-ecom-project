@@ -10,7 +10,7 @@ from products.models import ColorVariant
 
 
 colors = [
-    {'color_name': 'Xanh Jean', 'color_code': '#1E3A5F'},
+    {'color_name': 'Xanh', 'color_code': '#1E3A5F'},
     {'color_name': 'Nau', 'color_code': '#8B5A3C'},
     {'color_name': 'Den', 'color_code': '#000000'},
     {'color_name': 'Trang', 'color_code': '#FFFFFF'},

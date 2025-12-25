@@ -12,4 +12,5 @@ urlpatterns = [
     path('payment/vnpay/', vnpay.vnpay_payment, name='vnpay_payment'),
     path('payment/return/', vnpay.payment_return, name='payment_return'),
     path('buy-now/', views.buy_now, name='buy_now'),
+    path('remove-order/<str:order_uid>/', views.remove_order, name='remove_order'),
 ]

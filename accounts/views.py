@@ -13,7 +13,7 @@ from .utils import calculate_cart_total
 # Import Models & Forms
 from accounts.forms import AddressForm
 from orders.models import Order, OrderProduct
-from products.models import Variant, Coupon
+from products.models import CouponUsage, Variant, Coupon
 from .models import Address, Cart, CartItems, Profile
 
 from django.contrib.auth.forms import PasswordChangeForm
@@ -196,26 +196,53 @@ def remove_item(request, cart_item_uid):
 def apply_coupon(request):
     if request.method == 'POST':
         code = request.POST.get('coupon_code')
+        
+        
         if not request.user.is_authenticated:
+            messages.warning(request, 'Vui lòng đăng nhập để sử dụng mã giảm giá.')
             return redirect('login')
 
         try:
+            
             coupon = Coupon.objects.get(coupon_code__iexact=code)
             cart_obj, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
             
             if not coupon.is_valid():
-                messages.error(request, 'Mã giảm giá không hợp lệ.')
+                messages.error(request, 'Mã giảm giá đã hết hạn hoặc ngưng hoạt động!')
                 return redirect('cart')
+
             
+            if coupon in cart_obj.coupons.all():
+                messages.warning(request, 'Bạn đang sử dụng mã này rồi!')
+                return redirect('cart')
+
             
+            current_total = cart_obj.get_cart_total()
+            if current_total < coupon.minimum_amount:
+                
+                min_str = "{:,.0f}".format(coupon.minimum_amount).replace(",", ".")
+                messages.error(request, f'Đơn hàng cần tối thiểu {min_str} đ để dùng mã này!')
+                return redirect('cart')
+
+            
+            try:
+                usage = CouponUsage.objects.get(user=request.user, coupon=coupon)
+                if usage.used_count >= coupon.usage_limit_per_user:
+                    messages.error(request, 'Bạn đã hết lượt sử dụng mã giảm giá này!')
+                    return redirect('cart')
+            except CouponUsage.DoesNotExist:
+                
+                pass
+
             current_coupons = cart_obj.coupons.all()
             for applied_c in current_coupons:
                 if applied_c.coupon_type == coupon.coupon_type:
-                    messages.error(request, f'Không thể dùng 2 mã loại {coupon.coupon_type}')
+                    messages.error(request, f'Không thể áp dụng nhiều mã loại "{applied_c.get_coupon_type_display()}" cùng lúc.')
                     return redirect('cart')
 
+           
             cart_obj.coupons.add(coupon)
-            messages.success(request, f'Đã áp dụng mã {coupon.coupon_code}!')
+            messages.success(request, f'Áp dụng mã {coupon.coupon_code} thành công!')
 
         except Coupon.DoesNotExist:
             messages.error(request, 'Mã giảm giá không tồn tại.')
@@ -363,7 +390,7 @@ def user_dashboard(request):
     completed_count = orders.filter(status__in=['shipped', 'paid']).count() 
     recent_orders = orders[:5]
 
-    context = {
+    context = { 
         'total_orders': total_orders,
         'pending_count': pending_count,
         'completed_count': completed_count,

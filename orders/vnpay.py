@@ -32,7 +32,7 @@ def vnpay_payment(request):
     try:
         # Lấy giỏ hàng và tính tiền
         cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-        cart_data = calculate_cart_total(cart_obj, user=request.user) # <--- SỬA LỖI TẠI ĐÂY
+        cart_data = calculate_cart_total(cart_obj, user=request.user) 
         total_amount = int(cart_data['total']) # VNPay yêu cầu số nguyên
 
         # Tạo mã đơn hàng tạm (Ref)

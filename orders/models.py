@@ -40,6 +40,7 @@ class Order(BaseModel):
         ('shipped', 'Đang giao'),
         ('paid', 'Đã thanh toán'),
         ('cancelled', 'Đã hủy'),
+        ('completed', 'Hoàn thành'),
         
     ]
 

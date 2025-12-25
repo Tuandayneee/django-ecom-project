@@ -206,7 +206,7 @@
 
         if (newQty < 1) return;
 
-        // UI Feedback: Disable nút và làm mờ nhẹ input để người dùng biết đang xử lý
+        
         const row = document.getElementById(`row-${uid}`);
         row.style.opacity = '0.5';
         this.disabled = true;
@@ -226,7 +226,6 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          // Re-enable UI
           btnElem.disabled = false;
           rowElem.style.opacity = '1';
 

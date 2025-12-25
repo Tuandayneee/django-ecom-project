@@ -78,6 +78,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'ecom.context_processors.menu_categories',
+                'ecom.context_processors.cart_context',
             ],
         },
     },
@@ -91,8 +92,15 @@ WSGI_APPLICATION = 'ecom.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'urbanvibe_db',  
+        'USER': 'root',          
+        'PASSWORD': '123456',  
+        'HOST': '127.0.0.1',     
+        'PORT': '3306',          
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 

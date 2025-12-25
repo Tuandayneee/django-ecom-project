@@ -10,7 +10,7 @@ from django.db.models import F
 from accounts.models import Cart, Address
 from orders.models import Order, OrderProduct, Payment
 from orders.utils import get_user_shipping_fee, calculate_cart_total
-from products.models import Variant, Product
+from products.models import CouponUsage, Variant, Product
 from ecom.settings import EMAIL_HOST_USER
 from orders.utils import get_user_shipping_fee
 from .models import Order, OrderProduct, Payment
@@ -213,6 +213,16 @@ def handle_cod_payment(request, cart_obj, address_uid, direct_buy_data=None):
                     quantity=item_data['quantity'],
                     product_price=variant.price
                 )
+            if not direct_buy_data and cart_obj and cart_obj.coupons.exists():
+                for coupon in cart_obj.coupons.all():
+                    # Tìm hoặc tạo bản ghi Usage
+                    usage, created = CouponUsage.objects.get_or_create(
+                        user=request.user, 
+                        coupon=coupon
+                    )
+                    
+                    usage.used_count += 1
+                    usage.save()
         
             if direct_buy_data:
                 if 'direct_buy_item' in request.session:
@@ -336,4 +346,14 @@ def buy_now(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-    return JsonResponse({'status': 'error','message': 'Invalid request'}, )
+    return JsonResponse({'status': 'error','message': 'Invalid request'}, status=400)
+
+
+def remove_order(request, order_uid):
+    order = get_object_or_404(Order, uid=order_uid, user=request.user)
+    if order.status in ['Pending', 'Cancelled']:
+        order.delete()
+        messages.success(request, "Đơn hàng đã được hủy thành công.")
+    else:
+        messages.error(request, "Đơn hàng không thể hủy ở trạng thái hiện tại.")
+    return redirect('user_orders')

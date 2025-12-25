@@ -24,13 +24,10 @@
             
             <div class="d-none d-md-block">
                 {% if order.status == 'New' or order.status == 'Pending' %}
-                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold" onclick="return confirm('Bạn chắc chắn muốn hủy đơn này?')">
+                    <a href="{% url 'orders:remove_order' order.uid %}" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold" onclick="return confirm('Bạn chắc chắn muốn hủy đơn này?')">
                         <i class="fa fa-times me-1"></i> Hủy đơn hàng
-                    </button>
-                {% elif order.status == 'Completed' %}
-                    <a href="#" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold">
-                        <i class="fa fa-rotate-left me-1"></i> Mua lại
                     </a>
+                
                 {% endif %}
                 <button class="btn btn-link text-muted" onclick="window.print()"><i class="fa fa-print"></i></button>
             </div>
@@ -53,28 +50,30 @@
                                 <p class="small mb-0 mt-1">Lý do: Thay đổi ý định (hoặc lý do từ admin)</p>
                             </div>
                         {% else %}
-                            <div class="track-wrapper">
-                                <div class="track">
+                            <div class="card-body">
+                                <div class="steps d-flex flex-wrap flex-sm-nowrap justify-content-between padding-top-2x padding-bottom-1x">
+                                    
                                     <div class="step active">
                                         <div class="step-icon"><i class="fa fa-file-invoice"></i></div>
                                         <span class="step-text">Đã đặt hàng</span>
                                         <div class="small text-muted mt-1">{{ order.created_at|date:"H:i d/m" }}</div>
                                     </div>
 
-                                    <div class="step {% if order.status == 'Confirmed' or order.status == 'Accepted' or order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+                                    <div class="step {% if order.status|lower in 'confirmed,accepted,shipped,completed' %}active{% endif %}">
                                         <div class="step-icon"><i class="fa fa-box-open"></i></div>
                                         <span class="step-text">Đã xác nhận</span>
                                     </div>
 
-                                    <div class="step {% if order.status == 'shipped' or order.status == 'Completed' %}active{% endif %}">
+                                    <div class="step {% if order.status|lower in 'shipped,completed' %}active{% endif %}">
                                         <div class="step-icon"><i class="fa fa-truck-fast"></i></div>
                                         <span class="step-text">Đang giao</span>
                                     </div>
 
-                                    <div class="step {% if order.status == 'Completed' %}active{% endif %}">
+                                    <div class="step {% if order.status|lower == 'completed' %}active{% endif %}">
                                         <div class="step-icon"><i class="fa fa-check"></i></div>
                                         <span class="step-text">Hoàn thành</span>
                                     </div>
+                                    
                                 </div>
                             </div>
                         {% endif %}

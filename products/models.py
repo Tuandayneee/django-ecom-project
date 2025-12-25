@@ -20,7 +20,7 @@ class Category(BaseModel):
 
 class ColorVariant(BaseModel):
     color_name = models.CharField(max_length=100)
-    color_code = models.CharField(max_length=7, default='#000000', help_text='Hex color code (e.g., #FF5733)')
+    color_code = models.CharField(max_length=7, default='#000000', help_text='xanh:#1E3A5F, nâu:#8B5A3C, đen:#000000, trắng:#FFFFFF')
     
 
     def __str__(self):
@@ -74,9 +74,12 @@ class Product(BaseModel):
 
 
     def get_percentage_off(self):
-        if self.original_price > 0 and self.price < self.original_price:
-            discount = (self.original_price - self.price) / self.original_price * 100
+        current_price = self.min_price 
+        
+        if self.original_price > 0 and current_price < self.original_price:
+            discount = (self.original_price - current_price) / self.original_price * 100
             return int(discount)
+        return 0
     def __str__(self):
         return self.product_name
 
