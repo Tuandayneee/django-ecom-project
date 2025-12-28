@@ -135,37 +135,16 @@
     </div>
 </div>
 
+{% block scripts %}
 <script>
-    const container = document.getElementById('container');
-    const signUpBtn = document.getElementById('signUp'); // Nút trên Desktop
-    const signInBtn = document.getElementById('signIn'); // Nút trên Desktop
-    
-    const mobileToSignup = document.getElementById('to-signup'); // Text link trên Mobile
-    const mobileToSignin = document.getElementById('to-signin'); // Text link trên Mobile
-
-    // --- LOGIC CHO DESKTOP (SLIDING) ---
-    signUpBtn.addEventListener('click', () => {
-        container.classList.add("right-panel-active");
-    });
-
-    signInBtn.addEventListener('click', () => {
-        container.classList.remove("right-panel-active");
-    });
-
-    // --- LOGIC CHO MOBILE (TOGGLE) ---
-    mobileToSignup.addEventListener('click', () => {
-        container.classList.add("right-panel-active");
-    });
-
-    mobileToSignin.addEventListener('click', () => {
-        container.classList.remove("right-panel-active");
-    });
-
-    // --- LOGIC TỰ ĐỘNG CHUYỂN TAB DỰA TRÊN URL ---
-    // Nếu URL có chữ 'register' hoặc form đăng ký có lỗi -> Mở tab Đăng ký
-    {% if '/register/' in request.path or 'register' in request.path %}
-        container.classList.add("right-panel-active");
-    {% endif %}
+    window.AuthConfig = {
+        
+        isRegister: {% if '/register/' in request.path or 'register' in request.path %}true{% else %}false{% endif %}
+    };
 </script>
+
+<script src="{% static 'js/pages/auth.js' %}"></script>
+
+{% endblock %}
 
 {% endblock %}

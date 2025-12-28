@@ -7,7 +7,7 @@ DEFAULT_SHIPPING_FEE = getattr(settings, 'DEFAULT_SHIPPING_FEE', 30000)
 def get_user_shipping_fee(user, subtotal, address=None):
     
     # 1. Logic Freeship đơn hàng lớn
-    if subtotal > 1000000:
+    if subtotal > 3000000:
         return 0
     
     # Nếu chưa đăng nhập hoặc không có user -> Phí mặc định

@@ -13,7 +13,7 @@ from .utils import calculate_cart_total
 # Import Models & Forms
 from accounts.forms import AddressForm
 from orders.models import Order, OrderProduct
-from products.models import CouponUsage, Variant, Coupon
+from products.models import CouponUsage, Review, Variant, Coupon
 from .models import Address, Cart, CartItems, Profile
 
 from django.contrib.auth.forms import PasswordChangeForm
@@ -365,7 +365,16 @@ def order_detail(request, order_number):
     try:
         order = Order.objects.get(order_number=order_number, user=request.user)
         order_items = OrderProduct.objects.filter(order=order)
-
+        reviewed_products = Review.objects.filter(
+            user=request.user, 
+            order=order
+        ).values_list('product__uid', flat=True)
+        for item in order_items:
+        
+            if item.product.uid in reviewed_products:
+                item.has_reviewed = True
+            else:
+                item.has_reviewed = False
         context = {
             'order': order,
             'order_items': order_items,

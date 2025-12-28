@@ -179,14 +179,20 @@
             <div class="row">
                 <div class="col-lg-4 mb-4">
                     <div class="bg-white p-4 rounded text-center border h-100 d-flex flex-column justify-content-center">
-                        <h1 class="display-3 fw-bold mb-0">{{ avg_rating|floatformat:1 }}</h1>
+    
+                        <h1 class="display-3 fw-bold mb-0">{{ product.averageReview|floatformat:1 }}</h1>
+                        
                         <div class="text-warning fs-5 mb-2">
-                            {% for i in "12345" %}
-                                {% if avg_rating >= forloop.counter %} <i class="fa fa-star"></i>
-                                {% elif avg_rating >= forloop.counter|add:"-0.5" %} <i class="fa fa-star-half-alt"></i>
-                                {% else %} <i class="fa fa-star text-muted" style="opacity: 0.3"></i> {% endif %}
-                            {% endfor %}
+                            {% with avg=product.averageReview %}
+                                {% for i in "12345" %}
+                                    {% if avg >= forloop.counter %}
+                                        <i class="fa fa-star"></i> {% elif avg >= forloop.counter|add:"-0.5" %}
+                                        <i class="fa fa-star-half-alt"></i> {% else %}
+                                        <i class="fa fa-star text-muted" style="opacity: 0.3"></i> {% endif %}
+                                {% endfor %}
+                            {% endwith %}
                         </div>
+
                         <p class="text-muted mb-0">Dựa trên {{ product.reviews.count }} đánh giá</p>
                     </div>
                 </div>
@@ -205,43 +211,57 @@
 
                     <div class="review-list">
                         {% for review in reviews %}
-                        <div class="review-card mb-3 pb-3 border-bottom review-item d-none" data-rating="{{ review.rating }}">
+                        <div class="review-card mb-3 pb-3 border-bottom review-item d-none" 
+                            data-rating="{{ review.rating }}">
+                            
                             <div class="d-flex">
                                 <div class="me-3">
                                     <div class="user-avatar-char bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight: bold;">
                                         {{ review.user.username|slice:":1"|upper }}
                                     </div>
                                 </div>
+
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between mb-1">
-                                        <h6 class="fw-bold mb-0">{{ review.user.username }}</h6>
+                                        <h6 class="fw-bold mb-0 text-dark">{{ review.user.username }}</h6>
                                         <small class="text-muted">{{ review.created_at|date:"d/m/Y" }}</small>
                                     </div>
+
                                     <div class="text-warning small mb-2">
                                         {% for i in "12345" %}
                                             {% if review.rating >= forloop.counter %} <i class="fa fa-star"></i>
                                             {% else %} <i class="fa fa-star text-muted" style="opacity: 0.3"></i> {% endif %}
                                         {% endfor %}
                                     </div>
-                                    <p class="text-muted mb-0">{{ review.comment }}</p>
-                                </div>
+
+                                    <h6 class="fw-bold mb-1 text-dark">
+                                        {{ review.subject }}
+                                    </h6>
+
+                                    <p class="text-muted mb-0">
+                                        {{ review.review }} 
+                                        </p>
+                                    </div>
                             </div>
                         </div>
                         {% empty %}
-                        <div class="text-center py-4 text-muted bg-white border rounded">
-                            <p class="mb-0">Sản phẩm này chưa có đánh giá nào.</p>
-                        </div>
+                            <div class="text-center py-4 text-muted bg-white border rounded">
+                                <p class="mb-0">Sản phẩm này chưa có đánh giá nào.</p>
+                            </div>
                         {% endfor %}
 
                         <div id="noReviewMsg" class="text-center py-4 text-muted d-none">
-                            Không có đánh giá nào phù hợp với bộ lọc này.
+                            Không có đánh giá nào phù hợp.
                         </div>
                     </div>
+
                     
-                    {% if reviews.count > 0 %}
+                    
+                    {% if reviews.count > 3 %}
                     <div class="text-center mt-3">
-                        <button class="btn btn-outline-dark rounded-0 px-5" id="loadMoreReviewsBtn" onclick="loadMoreReviews()">
-                            Xem thêm đánh giá
+                        <button class="btn btn-outline-dark rounded-0 px-5 d-none" 
+                                id="loadMoreReviewsBtn" 
+                                onclick="toggleReviews()"> Xem tất cả đánh giá
                         </button>
                     </div>
                     {% endif %}
@@ -249,6 +269,7 @@
             </div>
         </div>
     </div>
+    
 </div>
 
 <div class="modal fade" id="sizeGuideModal" tabindex="-1" aria-hidden="true">
@@ -265,294 +286,26 @@
   </div>
 </div>
 
+{% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // --- 1. KHỞI TẠO DỮ LIỆU ---
-        let variantsMap = {};
-        try {
-            variantsMap = {{ variants_map_json|safe }};
-            console.log("Dữ liệu biến thể loaded:", variantsMap);
-        } catch (e) {
-            console.error("Lỗi parse JSON variantsMap:", e);
-        }
+    window.ProductConfig = {
         
-        const defaultPrice = {{ default_price|default:0 }};
+        variantsMap: {{ variants_map_json|safe }},
+        defaultPrice: {{ default_price|default:0 }},
         
-        // Lấy các element giao diện
-        const priceDisplay = document.getElementById("productPrice");
-        const originalPriceDisplay = document.getElementById("originalPriceDisplay");
-        const saleBadge = document.getElementById("saleBadge");
-        const saleBadgeText = document.getElementById("saleBadgeText");
-        const stockDisplay = document.getElementById("productStock");
-        const addToCartBtn = document.getElementById("addToCartBtn");
-        const quantityInput = document.getElementById("quantityInput");
-        const mainImg = document.getElementById("mainImage"); // 
-
-        // --- 2. HÀM CHANGE IMAGE (QUAN TRỌNG NHẤT) ---
-        // Gắn vào window để gọi được từ onclick trong HTML
-        window.changeImage = function(element, src, colorId) {
-            console.log("Click ảnh:", src, "Color ID:", colorId);
-
-            // A. Đổi ảnh chính (Visual Feedback)
-            if (mainImg && src) {
-                // Chỉ đổi nếu src khác nhau để tránh nháy
-                if (mainImg.src !== src && !mainImg.src.endsWith(src)) {
-                    mainImg.style.opacity = '0.5';
-                    setTimeout(() => {
-                        mainImg.src = src;
-                        mainImg.style.opacity = '1';
-                    }, 150);
-                } else {
-                    console.log("Ảnh trùng, không đổi visual");
-                }
-
-                // Active border cho thumbnail
-                document.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('active-thumb'));
-                if(element) element.classList.add('active-thumb');
-            } else {
-                console.error("Không tìm thấy #mainImage hoặc src rỗng");
-            }
-
-            // B. Tự động chọn Màu (Logic)
-            // Trim() để xóa khoảng trắng thừa nếu có
-            colorId = colorId ? colorId.trim() : "";
-            
-            if (colorId && colorId !== 'None') {
-                // Tìm input radio có value trùng với colorId của ảnh
-                const colorInput = document.querySelector(`input[name="color"][value="${colorId}"]`);
-                if (colorInput) {
-                    console.log("Tự động chọn màu:", colorId);
-                    colorInput.checked = true; 
-                    
-                    // C. Tính toán lại giá/kho (FALSE = Không đổi lại ảnh lần nữa)
-                    updateVariantState(false); 
-                } else {
-                    console.warn("Không tìm thấy input màu có ID:", colorId);
-                }
-            }
-        };
-
-        // --- 3. HÀM CẬP NHẬT TRẠNG THÁI ---
-        function updateVariantState(shouldUpdateImage = true) {
-            const colorEl = document.querySelector('input[name="color"]:checked');
-            const sizeEl = document.querySelector('input[name="size"]:checked');
-            
-            // LOGIC YÊU CẦU: Chưa chọn Size -> KHÔNG làm gì cả (Giữ nguyên giá cũ)
-            if (!sizeEl) {
-                console.log("Chưa chọn Size -> Dừng cập nhật");
-                return;
-            }
-            // Chưa chọn Màu -> Dừng
-            if (!colorEl) return;
-
-            const colorId = colorEl.value;
-            const sizeId = sizeEl.value;
-            const qty = parseInt(quantityInput.value) || 1;
-
-            const key = `${colorId}-${sizeId}`;
-            const data = variantsMap[key];
-            console.log("Check biến thể:", key, data);
-
-            if (data) {
-                // A. XỬ LÝ ẢNH (Chỉ chạy khi click Radio màu, KHÔNG chạy khi click Ảnh thumb)
-                if (shouldUpdateImage && data.image_url && mainImg) {
-                    if (!mainImg.src.includes(data.image_url)) {
-                        mainImg.style.opacity = '0.5';
-                        setTimeout(() => {
-                            mainImg.src = data.image_url;
-                            mainImg.style.opacity = '1';
-                        }, 150);
-                    }
-                }
-
-                // B. XỬ LÝ GIÁ BÁN
-                const totalPrice = data.price * qty;
-                if(priceDisplay) priceDisplay.innerText = formatMoney(totalPrice);
-
-                // C. XỬ LÝ SALE
-                if (originalPriceDisplay) {
-                    const totalOriginal = data.original_price * qty;
-                    if (data.original_price > data.price) {
-                        originalPriceDisplay.innerText = formatMoney(totalOriginal);
-                        originalPriceDisplay.style.display = 'inline-block';
-                        if (saleBadge) {
-                            const percent = Math.round(((data.original_price - data.price) / data.original_price) * 100);
-                            saleBadge.style.display = 'inline-block';
-                            saleBadgeText.innerText = `-${percent}%`;
-                        }
-                    } else {
-                        originalPriceDisplay.style.display = 'none';
-                        if (saleBadge) saleBadge.style.display = 'none';
-                    }
-                }
-
-                // D. XỬ LÝ KHO
-                if (data.stock > 0) {
-                    stockDisplay.innerHTML = `<span class="text-success fw-bold"><i class="fa fa-check"></i> Còn hàng (Kho: ${data.stock})</span>`;
-                    addToCartBtn.classList.remove('disabled');
-                    addToCartBtn.innerText = "Thêm vào giỏ";
-                    addToCartBtn.style.pointerEvents = 'auto';
-                    
-                    const baseUrl = "{% url 'add_to_cart' product.slug %}";
-                    addToCartBtn.href = `${baseUrl}?variant=${data.variant_uid}&quantity=${qty}`;
-
-                    if (qty > data.stock) {
-                        addToCartBtn.classList.add('disabled');
-                        addToCartBtn.href = "javascript:void(0)";
-                        stockDisplay.innerHTML = `<span class="text-danger fw-bold">Không đủ hàng (Còn ${data.stock})</span>`;
-                    }
-                } else {
-                    stockDisplay.innerHTML = `<span class="text-danger fw-bold"><i class="fa fa-times"></i> Hết hàng</span>`;
-                    addToCartBtn.classList.add('disabled');
-                    addToCartBtn.innerText = "Hết hàng";
-                    addToCartBtn.href = "javascript:void(0)";
-                    addToCartBtn.style.pointerEvents = 'none';
-                }
-            } else {
-                stockDisplay.innerHTML = `<span class="text-muted">Tùy chọn không khả dụng</span>`;
-                addToCartBtn.classList.add('disabled');
-                addToCartBtn.href = "javascript:void(0)";
-            }
-        }
-
-        // --- 4. HELPERS & EVENTS ---
-        function formatMoney(amount) {
-            return Number(amount).toLocaleString('vi-VN').replace(/\./g, ',') + ' đ';
-        }
-
-        window.changeQty = function(delta) {
-            let currentQty = parseInt(quantityInput.value) || 1;
-            let newQty = currentQty + delta;
-            if (newQty < 1) newQty = 1;
-            quantityInput.value = newQty;
-            updateVariantState(false);
-        }
-
-        window.scrollToReview = function() {
-            const reviewSec = document.getElementById('reviewSection');
-            if(reviewSec) reviewSec.scrollIntoView({ behavior: 'smooth' });
-        }
         
-        let currentFilter = 'all'; 
-        let visibleCount = 2;      
-        const STEP_LOAD = 5;
-        renderReviews();
-        window.filterReviews = function(rating, btnElement) {
-            // 1. Update giao diện nút bấm (Active)
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'btn-dark', 'text-white'));
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.add('btn-outline-dark'));
-            
-            // Style nút đang chọn
-            btnElement.classList.remove('btn-outline-dark');
-            btnElement.classList.add('active', 'btn-dark', 'text-white');
-
-            // 2. Reset bộ đếm và set filter mới
-            currentFilter = rating;
-            visibleCount = 2; // Reset về hiển thị 2 cái đầu khi đổi bộ lọc
-
-            // 3. Render lại
-            renderReviews();
-        }
-        window.loadMoreReviews = function() {
-            visibleCount += STEP_LOAD; 
-            renderReviews();
-        }
-        function renderReviews() {
-            const allReviews = document.querySelectorAll('.review-item');
-            const btnLoadMore = document.getElementById('loadMoreReviewsBtn');
-            const msgNoReview = document.getElementById('noReviewMsg');
-            
-            let countShown = 0;       // Đếm số review đã in ra màn hình
-            let countMatched = 0;     // Đếm tổng số review khớp với bộ lọc
-
-            allReviews.forEach(item => {
-                // Lấy số sao từ data-rating (HTML)
-                const itemRating = parseInt(item.getAttribute('data-rating'));
-                
-                // Kiểm tra xem review này có khớp với bộ lọc không
-                // Nếu filter là 'all' hoặc số sao trùng khớp
-                const isMatch = (currentFilter === 'all') || (itemRating === parseInt(currentFilter));
-
-                if (isMatch) {
-                    countMatched++;
-                    // Nếu khớp, kiểm tra xem đã vượt quá số lượng cho phép hiển thị chưa
-                    if (countShown < visibleCount) {
-                        item.classList.remove('d-none'); 
-                        item.classList.add('d-block');
-                        countShown++;
-                    } else {
-                        item.classList.remove('d-block');
-                        item.classList.add('d-none');    
-                    }
-                } else {
-                    item.classList.remove('d-block');
-                    item.classList.add('d-none');        
-                }
-            });
-            if (btnLoadMore) {
-                if (countShown < countMatched) {
-                    btnLoadMore.classList.remove('d-none');
-                    btnLoadMore.innerText = `Xem thêm (${countMatched - countShown} đánh giá)`;
-                } else {
-                    btnLoadMore.classList.add('d-none');
-                }
-            }
-
-            // Xử lý thông báo "Không có đánh giá"
-            if (countMatched === 0) {
-                if(msgNoReview) msgNoReview.classList.remove('d-none');
-            } else {
-                if(msgNoReview) msgNoReview.classList.add('d-none');
-            }
-        }
-        // Mua ngay
-        window.buyNow = function() {
-            const colorEl = document.querySelector('input[name="color"]:checked');
-            const sizeEl = document.querySelector('input[name="size"]:checked');
-            const hasColor = document.querySelector('input[name="color"]');
-            const hasSize = document.querySelector('input[name="size"]');
-
-            if ((hasColor && !colorEl) || (hasSize && !sizeEl)) {
-                alert("Vui lòng chọn Màu sắc và Kích thước!");
-                return;
-            }
-            
-            const colorId = colorEl ? colorEl.value : "None";
-            const sizeId = sizeEl ? sizeEl.value : "None";
-            const key = `${colorId}-${sizeId}`;
-            const data = variantsMap[key];
-            const qty = parseInt(quantityInput.value);
-
-            if (!data || data.stock < qty) {
-                alert("Sản phẩm tạm hết hàng hoặc số lượng không đủ!");
-                return;
-            }
-            
-            const buyBtn = document.getElementById("buyNowBtn");
-            const originalText = buyBtn.innerHTML;
-            buyBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';
-            buyBtn.disabled = true;
-
-            fetch("{% url 'orders:buy_now' %}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
-                body: JSON.stringify({ variant_uid: data.variant_uid, quantity: qty })
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.status === 'success') window.location.href = "{% url 'orders:checkout' %}";
-                else { alert(res.message); buyBtn.innerHTML = originalText; buyBtn.disabled = false; }
-            })
-            .catch(e => { console.error(e); alert("Lỗi kết nối"); buyBtn.innerHTML = originalText; buyBtn.disabled = false; });
-        }
-
-        // Event Listeners
-        document.querySelectorAll('.variant-selector').forEach(el => {
-            el.addEventListener('change', () => updateVariantState(true));
-        });
+        csrfToken: "{{ csrf_token }}",
         
-        quantityInput.addEventListener('change', () => changeQty(0));
-    });
+        
+        urls: {
+            addToCart: "{% url 'add_to_cart' product.slug %}",
+            buyNow: "{% url 'orders:buy_now' %}",
+            checkout: "{% url 'orders:checkout' %}"
+        }
+    };
 </script>
+
+<script src="{% static 'js/pages/product.js' %}"></script>
+{% endblock %}
 
 {% endblock %}

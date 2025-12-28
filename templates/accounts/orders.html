@@ -119,27 +119,6 @@
     </div>
 </section>
 
-<script>
-    function filterOrders(status) {
-        // 1. Active Tab
-        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-        event.target.classList.add('active');
-
-        // 2. Filter Items
-        const items = document.querySelectorAll('.order-item-wrapper');
-        let hasVisible = false;
-
-        items.forEach(item => {
-            if (status === 'all' || item.dataset.status === status) {
-                item.style.display = 'block';
-                hasVisible = true;
-            } else {
-                item.style.display = 'none';
-            }
-        });
-        
-
-    }
-</script>
+<script src="{% static 'js/pages/orders.js' %}"></script>
 
 {% endblock %}

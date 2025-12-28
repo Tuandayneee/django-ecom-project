@@ -21,9 +21,7 @@ def get_shipping_fee_by_location(address_obj):
         return 25000 
     return 35000 
 
-# --- HÀM MAIN ---
-# --- HÀM MAIN (Trong utils.py) ---
-# Thêm tham số selected_address=None
+
 def calculate_cart_total(cart_obj, user=None, selected_address=None):
     cart_items = cart_obj.cart_items.all()
     subtotal = sum(item.get_product_price for item in cart_items)
@@ -43,7 +41,7 @@ def calculate_cart_total(cart_obj, user=None, selected_address=None):
                 address_to_use = Address.objects.filter(user=current_user).first()
     
     
-    if subtotal > 1000000:
+    if subtotal > 3000000:
         shipping_fee = 0 
     elif address_to_use:
         shipping_fee = get_shipping_fee_by_location(address_to_use)

@@ -7,10 +7,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
 from django.db import transaction
-
+from products.models import Variant
 # Import Models & Utils
 from accounts.models import Cart, Address
-from accounts.utils import calculate_cart_total # <--- DÙNG HÀM NÀY
+from accounts.utils import calculate_cart_total
+from orders.utils import get_user_shipping_fee # <--- DÙNG HÀM NÀY
 from .models import Order, OrderProduct, Payment
 
 def get_client_ip(request):
@@ -23,47 +24,77 @@ def get_client_ip(request):
 
 
 def vnpay_payment(request):
-    # Lấy địa chỉ từ Session (đã lưu ở bước Checkout)
     address_uid = request.session.get('shipping_address_uid')
     if not address_uid:
         messages.warning(request, "Vui lòng chọn địa chỉ giao hàng trước.")
         return redirect('orders:checkout')
 
     try:
-        # Lấy giỏ hàng và tính tiền
-        cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-        cart_data = calculate_cart_total(cart_obj, user=request.user) 
-        total_amount = int(cart_data['total']) # VNPay yêu cầu số nguyên
-
-        # Tạo mã đơn hàng tạm (Ref)
-        order_id = f"ORD-{request.user.id}-{datetime.now().strftime('%H%M%S')}"
+        # Kiểm tra cờ xem đang là Mua ngay hay Giỏ hàng
+        is_buy_now = request.session.get('is_buy_now', False)
         
-        # Lưu Order ID tạm vào session để check lại khi return
-        request.session['order_ref'] = order_id
+        total_amount = 0
+        order_info_str = ""
 
-        # Cấu hình tham số VNPay
+        if is_buy_now:
+            # === TRƯỜNG HỢP 1: MUA NGAY ===
+            item_data = request.session.get('direct_buy_item')
+            if not item_data:
+                return redirect('product') # Hoặc trang lỗi
+            
+            # Lấy sản phẩm từ DB
+            variant = Variant.objects.get(uid=item_data['variant_uid'])
+            quantity = int(item_data['quantity'])
+            
+            # Tính tiền (Giá * Số lượng + Ship)
+            # Lưu ý: Bạn cần đảm bảo logic tính ship ở đây khớp với lúc hiển thị checkout
+            subtotal = variant.price * quantity
+            shipping_fee = 35000 # Ví dụ cố định, hoặc gọi hàm get_shipping_fee(subtotal)
+            
+            total_amount = subtotal + shipping_fee
+            order_info_str = f"Thanh toan mua ngay: {variant.product.product_name}"
+            
+        else:
+            # === TRƯỜNG HỢP 2: GIỎ HÀNG ===
+            # Tìm giỏ hàng có sản phẩm
+            carts = Cart.objects.filter(user=request.user, is_paid=False)
+            cart_obj = None
+            for cart in carts:
+                if cart.cart_items.exists():
+                    cart_obj = cart
+                    break
+            
+            if not cart_obj:
+                return redirect('store')
+
+            cart_data = calculate_cart_total(cart_obj, user=request.user)
+            total_amount = int(cart_data['total'])
+            order_info_str = f"Thanh toan gio hang User {request.user.id}"
+
+        # --- PHẦN TẠO URL VNPAY ---
+        order_id = f"ORD-{request.user.id}-{datetime.now().strftime('%H%M%S')}"
+        request.session['order_ref'] = order_id # Lưu lại để check
+        
         ipaddr = get_client_ip(request)
         
         inputData = {
             "vnp_Version": "2.1.0",
             "vnp_Command": "pay",
             "vnp_TmnCode": settings.VNPAY_TMN_CODE,
-            "vnp_Amount": str(total_amount * 100), # Bắt buộc nhân 100
+            "vnp_Amount": str(int(total_amount) * 100), # Bắt buộc nhân 100
             "vnp_CreateDate": datetime.now().strftime('%Y%m%d%H%M%S'),
             "vnp_CurrCode": "VND",
             "vnp_IpAddr": ipaddr,
             "vnp_Locale": "vn",
-            "vnp_OrderInfo": f"Thanh toan don hang {order_id}",
+            "vnp_OrderInfo": order_info_str,
             "vnp_OrderType": "billpayment",
             "vnp_ReturnUrl": settings.VNPAY_RETURN_URL,
             "vnp_TxnRef": order_id, 
         }
 
-        # Sắp xếp dữ liệu (Yêu cầu bắt buộc của VNPay)
         inputData = sorted(inputData.items())
         queryData = urllib.parse.urlencode(inputData)
         
-        # Tạo chữ ký bảo mật (Secure Hash)
         if settings.VNPAY_HASH_SECRET_KEY:
             vnp_SecureHash = hmac.new(
                 bytes(settings.VNPAY_HASH_SECRET_KEY, 'utf-8'),
@@ -79,7 +110,6 @@ def vnpay_payment(request):
         print(f"Lỗi tạo URL VNPay: {e}")
         return redirect('orders:checkout')
 
-
 # --- 2. XỬ LÝ KẾT QUẢ TRẢ VỀ (QUAN TRỌNG NHẤT) ---
 def payment_return(request):
     inputData = request.GET
@@ -90,21 +120,72 @@ def payment_return(request):
         # Kiểm tra thành công (Mã 00 là thành công)
         if vnp_ResponseCode == '00':
             try:
-                # Bắt đầu Transaction để tạo đơn hàng
                 with transaction.atomic():
-                    # 1. Lấy lại thông tin từ Session/DB
+                    # 1. Lấy thông tin địa chỉ
                     address_uid = request.session.get('shipping_address_uid')
                     address = Address.objects.get(uid=address_uid)
                     
-                    cart_obj = Cart.objects.get(user=request.user, is_paid=False)
-                    cart_data = calculate_cart_total(cart_obj, user=request.user)
+                    # --- XÁC ĐỊNH NGUỒN DỮ LIỆU (MUA NGAY hay GIỎ HÀNG) ---
+                    is_buy_now = request.session.get('is_buy_now', False)
                     
-                    # 2. Tạo Payment (Đã thanh toán)
+                    # Khai báo biến chung để hứng dữ liệu
+                    final_subtotal = 0
+                    final_shipping = 35000 # Logic tính ship phải khớp với lúc gọi pay
+                    final_total = 0
+                    final_tax = 0
+                    final_discount = 0
+                    order_items_payload = [] # List chứa các món hàng cần tạo
+
+                    if is_buy_now:
+                        # == XỬ LÝ MUA NGAY ==
+                        item_data = request.session.get('direct_buy_item')
+                        variant = Variant.objects.get(uid=item_data['variant_uid'])
+                        qty = int(item_data['quantity'])
+                        
+                        final_subtotal = variant.price * qty
+                        # final_shipping = get_shipping_fee(...) # Nếu có hàm tính ship riêng
+                        final_total = final_subtotal + final_shipping
+                        
+                        # Thêm vào list để lát nữa loop tạo OrderProduct
+                        order_items_payload.append({
+                            'variant': variant,
+                            'quantity': qty,
+                            'price': variant.price
+                        })
+                        
+                    else:
+                        # == XỬ LÝ GIỎ HÀNG ==
+                        carts = Cart.objects.filter(user=request.user, is_paid=False)
+                        cart_obj = None
+                        for cart in carts:
+                            if cart.cart_items.exists():
+                                cart_obj = cart
+                                break
+                        
+                        cart_data = calculate_cart_total(cart_obj, user=request.user)
+                        
+                        final_subtotal = cart_data['subtotal']
+                        final_shipping = cart_data['shipping_fee']
+                        final_tax = cart_data['tax']
+                        final_discount = cart_data['discount'] # Nếu có
+                        final_total = cart_data['total']
+                        
+                        # Chuyển đổi item trong giỏ thành list chuẩn
+                        for item in cart_data['cart_items']:
+                            order_items_payload.append({
+                                'variant': item.variant,
+                                'quantity': item.quantity,
+                                'price': item.variant.price
+                            })
+
+                    # -----------------------------------------------------
+
+                    # 2. Tạo Payment
                     payment = Payment.objects.create(
                         user=request.user,
-                        payment_id=vnp_TxnRef, # Lưu mã đơn của VNPay
+                        payment_id=vnp_TxnRef, 
                         payment_method='VNPay',
-                        amount_paid=str(cart_data['total']),
+                        amount_paid=str(final_total),
                         status='Completed' 
                     )
 
@@ -112,43 +193,57 @@ def payment_return(request):
                     order = Order.objects.create(
                         user=request.user,
                         payment=payment,
-                        order_number=vnp_TxnRef, # Dùng luôn mã Ref làm mã đơn
+                        order_number=vnp_TxnRef, 
                         full_name=address.full_name,
                         phone=address.phone,
                         address=address.address_line,
                         city=address.city,
-                        order_total=cart_data['subtotal'],
-                        shipping_fee=cart_data['shipping_fee'],
-                        coupon_discount=cart_data['discount'],
-                        tax=cart_data['tax'],
-                        status='Accepted', #
+                        order_total=final_subtotal,
+                        shipping_fee=final_shipping,
+                        coupon_discount=final_discount,
+                        tax=final_tax,
+                        status='Accepted', 
                         is_ordered=True
                     )
 
-                    # 4. Chuyển sản phẩm & Trừ kho
-                    for item in cart_data['cart_items']:
-                        variant = item.variant
-                        variant.stock -= item.quantity
-                        variant.save()
+                    # 4. Tạo OrderProduct & Trừ kho (Dùng chung cho cả 2 trường hợp)
+                    for item in order_items_payload:
+                        var = item['variant']
+                        qty = item['quantity']
+                        price = item['price']
+
+                        # Trừ kho
+                        var.stock -= qty
+                        var.save()
 
                         OrderProduct.objects.create(
                             order=order,
                             user=request.user,
-                            Payment=payment,
-                            product=variant.product,
-                            variant=variant,
-                            quantity=item.quantity,
-                            product_price=variant.price,
+                            payment=payment,
+                            product=var.product,
+                            variant=var,
+                            quantity=qty,
+                            product_price=price,
                             ordered=True
                         )
 
-                    # 5. Xóa giỏ hàng
-                    cart_obj.cart_items.all().delete()
-                    cart_obj.coupons.clear()
-                    cart_obj.save()
+                    # 5. Dọn dẹp dữ liệu (Cleanup)
+                    if is_buy_now:
+                        # Xóa session mua ngay
+                        if 'direct_buy_item' in request.session:
+                            del request.session['direct_buy_item']
+                        if 'is_buy_now' in request.session:
+                            del request.session['is_buy_now']
+                    else:
+                        # Xóa giỏ hàng
+                        if cart_obj:
+                            cart_obj.cart_items.all().delete()
+                            cart_obj.coupons.clear()
+                            cart_obj.save()
 
-                    # Xóa session
-                    del request.session['shipping_address_uid']
+                    # Xóa session địa chỉ chung
+                    if 'shipping_address_uid' in request.session:
+                        del request.session['shipping_address_uid']
                     
                     messages.success(request, "Thanh toán thành công!")
                     return redirect('orders:order_success', order_uid=order.uid)

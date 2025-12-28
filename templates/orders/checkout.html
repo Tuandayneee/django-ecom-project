@@ -206,88 +206,17 @@
 </section>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const addressRadios = document.querySelectorAll('input[name="selected_address"]');
-        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-        const csrftoken = csrfInput ? csrfInput.value : '';
+    window.CheckoutConfig = {
         
-        // Element hiển thị
-        const shippingElem = document.getElementById('shipping-fee-display');
-        const totalElem = document.getElementById('total-display');
-        const loadingOverlay = document.getElementById('summaryLoading');
-
-        // Hàm format tiền
-        const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
-
-        function updateShippingFee(addressUid) {
-            if (!addressUid) return;
-
-            // Bật Loading Overlay
-            loadingOverlay.style.display = 'flex';
-
-            fetch("{% url 'orders:update_shipping_fee' %}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": csrftoken
-                },
-                body: JSON.stringify({ address_uid: addressUid })
-            })
-            .then(response => response.json())
-            .then(data => {
-                setTimeout(() => { // Delay giả lập xíu cho mượt (optional)
-                    loadingOverlay.style.display = 'none';
-                    
-                    if (data.status === 'success') {
-                        // Cập nhật phí ship
-                        if (data.shipping_fee > 0) {
-                            shippingElem.innerText = `+ ${formatCurrency(data.shipping_fee)}`;
-                            shippingElem.className = '';
-                        } else {
-                            shippingElem.innerHTML = '<span class="text-success">Miễn phí</span>';
-                        }
-                        
-                        // Cập nhật tổng tiền
-                        totalElem.innerText = formatCurrency(data.total);
-                    } else {
-                        console.error('Lỗi tính phí:', data.message);
-                    }
-                }, 300);
-            })
-            .catch(error => {
-                console.error('Lỗi mạng:', error);
-                loadingOverlay.style.display = 'none';
-            });
+        csrfToken: "{{ csrf_token }}",
+        
+        
+        urls: {
+            updateShipping: "{% url 'orders:update_shipping_fee' %}"
         }
-
-        // Gắn sự kiện change cho radio buttons
-        addressRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                updateShippingFee(this.value);
-            });
-        });
-
-        // Trigger lần đầu khi load trang (lấy địa chỉ mặc định)
-        const defaultRadio = document.querySelector('input[name="selected_address"]:checked');
-        if (defaultRadio) {
-            // Không cần gọi AJAX lần đầu nếu backend đã render đúng số liệu, 
-            // nhưng gọi lại để đảm bảo tính nhất quán cũng được.
-            // updateShippingFee(defaultRadio.value); 
-        } else if(addressRadios.length > 0) {
-            // Nếu chưa chọn, chọn cái đầu tiên
-            addressRadios[0].checked = true;
-            updateShippingFee(addressRadios[0].value);
-        }
-
-        // Auto show modal nếu chưa có địa chỉ
-        const noAddress = document.getElementById('no_address_flag');
-        if (noAddress && typeof bootstrap !== 'undefined') {
-             var myModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
-             myModal.show();
-        }
-    });
+    };
 </script>
-
+<script src="{% static 'js/pages/checkout.js' %}"></script>
 {% include "accounts/address_form.html" with next_url="orders:checkout" %}
 
 {% endblock %}

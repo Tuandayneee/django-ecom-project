@@ -128,37 +128,65 @@
                                     <th class="ps-4">Sản phẩm</th>
                                     <th class="text-center">Giá</th>
                                     <th class="text-center">SL</th>
-                                    <th class="text-end pe-4">Tạm tính</th>
+                                    <th class="text-end">Tạm tính</th>
+                                    
+                                    {% if order.status == 'completed' %}
+                                        <th class="text-center" style="width: 120px;">Đánh giá</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in order_items %}
+                                {% for item in order_items %} 
                                 <tr>
                                     <td class="ps-4 py-3">
                                         <div class="d-flex align-items-center">
-                                            {% if item.variant.image %}
-                                                <img src="{{ item.variant.image.url }}" class="rounded border" width="60" height="60" style="object-fit: cover;">
-                                            {% elif item.product.product_images.first %}
-                                                <img src="{{ item.product.product_images.first.image.url }}" class="rounded border" width="60" height="60" style="object-fit: cover;">
-                                            {% else %}
-                                                <img src="https://via.placeholder.com/60" class="rounded border" width="60">
-                                            {% endif %}
                                             <div class="ms-3">
-                                                <a href="{{ item.product.get_url }}" class="text-dark text-decoration-none fw-bold small d-block mb-1">
+                                                <a href="{{ item.product.get_url }}" class="fw-bold text-dark text-decoration-none">
                                                     {{ item.product.product_name }}
                                                 </a>
-                                                <div class="text-muted small">
-                                                    {% if item.variant.size %}<span class="badge bg-light text-dark border me-1">{{ item.variant.size.size_name }}</span>{% endif %}
-                                                    {% if item.variant.color %}<span class="badge bg-light text-dark border">{{ item.variant.color.color_name }}</span>{% endif %}
                                                 </div>
-                                            </div>
                                         </div>
                                     </td>
-                                    <td class="text-center text-muted">{{ item.product_price|intcomma }} đ</td>
-                                    <td class="text-center fw-bold">x{{ item.quantity }}</td>
-                                    <td class="text-end pe-4 fw-bold">{{ item.sub_total|intcomma }} đ</td>
+
+                                    <td class="text-center text-muted align-middle">{{ item.product_price|intcomma }} đ</td>
+
+                                    <td class="text-center fw-bold align-middle">x{{ item.quantity }}</td>
+                                    
+                                    <td class="text-end align-middle fw-bold text-dark fs-6">
+                                        {{ item.total_price|intcomma }} đ
+                                    </td>
+
+                                    {% if order.status == 'completed' %}
+                                        <td class="text-center align-middle">
+                                        {% if item.product and item.product.uid %}
+                                            
+                                            
+                                            {% if item.has_reviewed %}
+                                                
+                                                <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm text-nowrap" disabled>
+                                                    <i class="fa fa-check me-1"></i> Đã đánh giá
+                                                </button>
+
+                                            {% else %}
+
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-dark rounded-pill px-3 shadow-sm text-nowrap"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#reviewModal"
+                                                        data-product-name="{{ item.product.product_name }}"
+                                                        data-product-img="{% if item.product.images %}{{ item.product.images.url }}{% else %}https://via.placeholder.com/60{% endif %}"
+                                                        data-url="{% url 'submit_review' order.order_number item.product.uid %}">
+                                                    <i class="fa fa-star text-warning me-1"></i> Đánh giá
+                                                </button>
+
+                                            {% endif %}
+                                            
+
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
                                 </tr>
-                                {% endfor %}
+                                {% endfor %} 
                             </tbody>
                         </table>
                     </div>
@@ -206,5 +234,6 @@
         </div>
     </div>
 </section>
-
+{% include "includes/add_review_form.html" %}
+<script src="{% static 'js/pages/order_detail.js' %}"></script>
 {% endblock %}

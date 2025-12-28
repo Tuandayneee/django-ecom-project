@@ -102,8 +102,10 @@
 </section>
 
 {% include "accounts/address_form.html" with next_url="address_list" %}
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
-<script src="{% static 'js/address_logic.js' %}"></script> 
-
+{% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    
+    <script src="{% static 'js/pages/address_logic.js' %}"></script>
 {% endblock %}
+{% endblock %}
+

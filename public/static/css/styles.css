@@ -960,6 +960,21 @@ span {
 .search-btn i {
   font-size: 1rem;
 }
+.modal-body select {
+  position: relative;
+}
+
+/* Nếu dùng Bootstrap Dropdown menu */
+.dropdown-menu {
+  top: 100% !important;
+  bottom: auto !important;
+  transform: none !important;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 8px;
+  margin-top: 10px;
+  padding: 10px;
+}
 /* Slider Fix: Giới hạn chiều cao và hiển thị full ảnh */
 .hero-slider {
   border-radius: 12px;
@@ -1079,11 +1094,7 @@ span {
   color: var(--accent-gold);
   font-size: 1.1rem;
 }
-.dropdown-menu {
-  border-radius: 8px;
-  margin-top: 10px;
-  padding: 10px;
-}
+
 .dropdown-item {
   padding: 10px 15px;
   border-radius: 5px;
@@ -2413,4 +2424,56 @@ button.btn-ghost:hover {
   color: #333;
   line-height: 1.7;
   background-color: #fff;
+}
+/* 1. Ẩn nút radio */
+.rate {
+  float: left;
+  height: 46px;
+  padding: 0 10px;
+}
+.rate:not(:checked) > input {
+  position: absolute;
+  top: -9999px;
+}
+
+/* 2. Tạo hình ngôi sao bằng KÝ TỰ (Không cần FontAwesome) */
+.rate:not(:checked) > label {
+  float: right;
+  width: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 30px;
+  color: #ccc;
+}
+
+/* Dùng ký tự ngôi sao có sẵn */
+.rate:not(:checked) > label:before {
+  content: "★ ";
+}
+
+/* 3. Hiệu ứng đổi màu */
+.rate > input:checked ~ label {
+  color: #ffc700;
+}
+.rate:not(:checked) > label:hover,
+.rate:not(:checked) > label:hover ~ label {
+  color: #deb217;
+}
+.rate > input:checked + label:hover,
+.rate > input:checked + label:hover ~ label,
+.rate > input:checked ~ label:hover,
+.rate > input:checked ~ label:hover ~ label,
+.rate > label:hover ~ input:checked ~ label {
+  color: #c59b08;
+}
+.btn-review:hover {
+  background-color: #000 !important; /* Nền đen */
+  color: #fff !important; /* Chữ trắng */
+  border-color: #000 !important; /* Viền đen */
+}
+
+/* Giữ icon ngôi sao màu vàng ngay cả khi hover (nếu muốn) */
+.btn-review:hover .text-warning {
+  color: #ffc107 !important;
 }

@@ -85,7 +85,7 @@
                                     <td>
                                         <div class="qty-container mx-auto">
                                             <button class="qty-btn btn-update" data-action="decrease" data-uid="{{ item.uid }}">-</button>
-                                            <input type="text" class="qty-input" value="{{ item.quantity }}" readonly id="qty-{{ item.uid }}">
+                                            <input type="text" class="qty-input" value="{{ item.quantity }}" readonly id="qty-{{ item.uid }}" data-old-value="{{ item.quantity }}">
                                             <button class="qty-btn btn-update" data-action="increase" data-uid="{{ item.uid }}">+</button>
                                         </div>
                                     </td>
@@ -183,78 +183,21 @@
     </div>
 </div>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    
-    function formatCurrency(amount) {
-        return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
-    }
+{% block scripts %}
 
-    const buttons = document.querySelectorAll(".btn-update");
-
-    buttons.forEach((btn) => {
-      btn.addEventListener("click", function () {
-        const uid = this.dataset.uid;
-        const action = this.dataset.action;
-        const input = document.getElementById(`qty-${uid}`);
-        
-        let currentQty = parseInt(input.value);
-        let newQty = currentQty;
-
-        if (action === "increase") newQty++;
-        if (action === "decrease") newQty--;
-
-        if (newQty < 1) return;
-
-        
-        const row = document.getElementById(`row-${uid}`);
-        row.style.opacity = '0.5';
-        this.disabled = true;
-        
-        updateCartItem(uid, newQty, input, this, row);
-      });
-    });
-
-    function updateCartItem(uid, qty, inputElem, btnElem, rowElem) {
-      fetch("{% url 'update_cart' %}", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": "{{ csrf_token }}",
-        },
-        body: JSON.stringify({ item_uid: uid, new_quantity: qty }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          btnElem.disabled = false;
-          rowElem.style.opacity = '1';
-
-          if (data.status === "Success") {
-            inputElem.value = qty;
-            inputElem.dataset.oldValue = qty;
+    <script>
+        window.CartConfig = {
             
-            const itemTotalElem = document.getElementById(`item-total-${uid}`);
-            if (itemTotalElem) itemTotalElem.innerText = formatCurrency(data.item_total);
+            csrfToken: "{{ csrf_token }}",
             
-            document.getElementById(`cart-subtotal`).innerText = formatCurrency(data.subtotal);
-            document.getElementById(`cart-total`).innerText = formatCurrency(data.cart_total);
             
-            const discountElem = document.getElementById(`cart-discount`);
-            if (discountElem) {
-              discountElem.innerText = `-${formatCurrency(data.discount)}`;
+            urls: {
+                updateCart: "{% url 'update_cart' %}"
             }
-          } else {
-            alert(data.message || "Lỗi cập nhật giỏ hàng");
-            inputElem.value = inputElem.dataset.oldValue;
-          }
-        })
-        .catch((err) => {
-            console.error(err);
-            btnElem.disabled = false;
-            rowElem.style.opacity = '1';
-            alert("Đã xảy ra lỗi kết nối");
-        });
-    }
-  });
-</script>
+        };
+    </script>
+
+    <script src="{% static 'js/pages/cart.js' %}"></script>
+
+{% endblock %}
 {% endblock %}

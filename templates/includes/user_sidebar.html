@@ -64,16 +64,4 @@
     </nav>
 </div>
 
-<script>
-    document.getElementById('avatar-input').addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            // UI Feedback: Hiện loading ngay lập tức
-            document.getElementById('avatarLoading').style.display = 'flex';
-            
-            // Submit form sau 500ms (để user kịp nhìn thấy hiệu ứng loading)
-            setTimeout(() => {
-                document.getElementById('avatar-form').submit();
-            }, 500);
-        }
-    });
-</script>
+<script src="{% static 'js/pages/user_sidebar.js' %}"></script>

@@ -4,6 +4,8 @@ from base.models import BaseModel
 from django.utils.text import slugify
 from django.utils import timezone
 from django.db.models import Min
+from django.contrib.auth.models import User
+from django.db.models import Avg, Count
 
 
 class Category(BaseModel):
@@ -80,6 +82,22 @@ class Product(BaseModel):
             discount = (self.original_price - current_price) / self.original_price * 100
             return int(discount)
         return 0
+    def averageReview(self):
+        from .models import Review 
+        
+        reviews = Review.objects.filter(product=self, status=True).aggregate(average=Avg('rating'))
+        avg = 0
+        if reviews['average'] is not None:
+            avg = float(reviews['average'])
+        return avg
+
+    def countReview(self):
+        from .models import Review
+        reviews = Review.objects.filter(product=self, status=True).aggregate(count=Count('id'))
+        count = 0
+        if reviews['count'] is not None:
+            count = int(reviews['count'])
+        return count
     def __str__(self):
         return self.product_name
 
@@ -175,3 +193,16 @@ class CouponUsage(models.Model):
 
     
 
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,related_name="reviews")
+    order = models.ForeignKey('orders.Order', on_delete=models.CASCADE, null=True, blank=True)
+    subject = models.CharField(max_length=100, blank=True)  
+    review = models.TextField(max_length=500, blank=True)   
+    rating = models.FloatField()                            
+    ip = models.CharField(max_length=20, blank=True)        
+    status = models.BooleanField(default=True)              
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return self.subject

@@ -1,5 +1,9 @@
-from django.shortcuts import render, get_object_or_404
-from .models import Product, Variant
+from django.contrib import messages
+from django.shortcuts import redirect, render, get_object_or_404
+
+from orders.models import Order
+from products.forms import ReviewForm
+from .models import Product, Review, Variant
 from django.http import Http404, JsonResponse
 from django.db.models import Min, Avg
 import json
@@ -142,3 +146,48 @@ def get_variant_price(request):
         response_data['message'] = "Lỗi hệ thống"
 
     return JsonResponse(response_data)
+
+
+def submit_review(request, order_id, product_id):
+    url = request.META.get('HTTP_REFERER')
+    if not request.user.is_authenticated:
+        return redirect('login')
+    product = get_object_or_404(Product, uid=product_id)
+    order = get_object_or_404(Order, order_number=order_id, user=request.user)
+    try:
+        existing_review = Review.objects.get(
+            user__id=request.user.id,
+            product=product,
+            order=order 
+        )
+        if existing_review:
+            form = None 
+            messages.warning(request, 'Bạn đã đánh giá sản phẩm này trong đơn hàng này rồi!')
+            return redirect(url) 
+
+    except Review.DoesNotExist:
+        form = ReviewForm(request.POST or None)
+    
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            data = Review()
+            data.subject = form.cleaned_data['subject']
+            data.rating = form.cleaned_data['rating']
+            data.review = form.cleaned_data['review']
+            data.ip = request.META.get('REMOTE_ADDR')
+            
+            data.product = product
+            data.user_id = request.user.id
+            data.order = order 
+            
+            data.save()
+            messages.success(request, 'Cảm ơn bạn đã đánh giá!')
+            return redirect('user_orders') 
+
+    
+    context = {
+        'product': product,
+        'order': order
+    }
+    return render(request, 'accounts/add_review.html', context)

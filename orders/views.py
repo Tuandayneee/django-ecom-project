@@ -339,7 +339,7 @@ def buy_now(request):
                 'variant_uid': variant_uid,
                 'quantity': quantity
             }
-
+            request.session['is_buy_now'] = True
             request.session.modified = True
 
             return JsonResponse({'status': 'success'})
