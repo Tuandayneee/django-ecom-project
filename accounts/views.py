@@ -273,12 +273,18 @@ def save_address(request):
         full_name = request.POST.get('full_name') 
         phone = request.POST.get('phone')
         city = request.POST.get('city')
+        district = request.POST.get('district')  
+        ward = request.POST.get('ward')
         address_line = request.POST.get('address_line')
-        
+        full_address_display = f"{address_line}, {ward}, {district}, {city}"
         
         is_default_bool = request.POST.get('is_default') == 'on'
+
+
+               
         
         province_id = request.POST.get('province_id')
+        
         district_id = request.POST.get('district_id')
         ward_code = request.POST.get('ward_code')
         
@@ -290,7 +296,7 @@ def save_address(request):
             full_name=full_name, 
             phone=phone,
             city=city,
-            address_line=address_line,
+            address_line=full_address_display,
             is_default=is_default_bool,
             province_id=province_id,
             district_id=district_id,
@@ -398,12 +404,16 @@ def user_dashboard(request):
     
     completed_count = orders.filter(status__in=['shipped', 'paid']).count() 
     recent_orders = orders[:5]
+    
+    # Lấy địa chỉ mặc định
+    default_address = Address.objects.filter(user=user, is_default=True).first()
 
     context = { 
         'total_orders': total_orders,
         'pending_count': pending_count,
         'completed_count': completed_count,
         'recent_orders': recent_orders,
+        'default_address': default_address,
     }
     return render(request, 'accounts/dashboard.html', context)
 

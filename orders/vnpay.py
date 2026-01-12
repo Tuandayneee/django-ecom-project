@@ -47,9 +47,13 @@ def vnpay_payment(request):
             quantity = int(item_data['quantity'])
             
             # Tính tiền (Giá * Số lượng + Ship)
-            # Lưu ý: Bạn cần đảm bảo logic tính ship ở đây khớp với lúc hiển thị checkout
             subtotal = variant.price * quantity
-            shipping_fee = 35000 # Ví dụ cố định, hoặc gọi hàm get_shipping_fee(subtotal)
+            # Lấy địa chỉ từ session để tính shipping fee chính xác
+            address_uid = request.session.get('shipping_address_uid')
+            address = None
+            if address_uid:
+                address = Address.objects.get(uid=address_uid)
+            shipping_fee = get_user_shipping_fee(request.user, subtotal, address)
             
             total_amount = subtotal + shipping_fee
             order_info_str = f"Thanh toan mua ngay: {variant.product.product_name}"
@@ -57,19 +61,20 @@ def vnpay_payment(request):
         else:
             # === TRƯỜNG HỢP 2: GIỎ HÀNG ===
             # Tìm giỏ hàng có sản phẩm
-            carts = Cart.objects.filter(user=request.user, is_paid=False)
-            cart_obj = None
-            for cart in carts:
-                if cart.cart_items.exists():
-                    cart_obj = cart
-                    break
-            
-            if not cart_obj:
-                return redirect('store')
+            try:
+                cart_obj = Cart.objects.get(user=request.user, is_paid=False)
+                
+                # Kiểm tra giỏ hàng có sản phẩm không
+                if not cart_obj.cart_items.exists():
+                    messages.warning(request, "Giỏ hàng của bạn trống.")
+                    return redirect('cart')
 
-            cart_data = calculate_cart_total(cart_obj, user=request.user)
-            total_amount = int(cart_data['total'])
-            order_info_str = f"Thanh toan gio hang User {request.user.id}"
+                cart_data = calculate_cart_total(cart_obj, user=request.user)
+                total_amount = int(cart_data['total'])
+                order_info_str = f"Thanh toan gio hang User {request.user.id}"
+            except Cart.DoesNotExist:
+                messages.warning(request, "Không tìm thấy giỏ hàng.")
+                return redirect('cart')
 
         # --- PHẦN TẠO URL VNPAY ---
         order_id = f"ORD-{request.user.id}-{datetime.now().strftime('%H%M%S')}"
@@ -143,7 +148,8 @@ def payment_return(request):
                         qty = int(item_data['quantity'])
                         
                         final_subtotal = variant.price * qty
-                        # final_shipping = get_shipping_fee(...) # Nếu có hàm tính ship riêng
+                        # Tính ship theo địa chỉ
+                        final_shipping = get_user_shipping_fee(request.user, final_subtotal, address)
                         final_total = final_subtotal + final_shipping
                         
                         # Thêm vào list để lát nữa loop tạo OrderProduct
@@ -155,12 +161,15 @@ def payment_return(request):
                         
                     else:
                         # == XỬ LÝ GIỎ HÀNG ==
-                        carts = Cart.objects.filter(user=request.user, is_paid=False)
-                        cart_obj = None
-                        for cart in carts:
-                            if cart.cart_items.exists():
-                                cart_obj = cart
-                                break
+                        try:
+                            cart_obj = Cart.objects.get(user=request.user, is_paid=False)
+                        except Cart.DoesNotExist:
+                            messages.error(request, "Không tìm thấy giỏ hàng.")
+                            return redirect('cart')
+                        
+                        if not cart_obj.cart_items.exists():
+                            messages.error(request, "Giỏ hàng trống.")
+                            return redirect('cart')
                         
                         cart_data = calculate_cart_total(cart_obj, user=request.user)
                         
@@ -196,13 +205,13 @@ def payment_return(request):
                         order_number=vnp_TxnRef, 
                         full_name=address.full_name,
                         phone=address.phone,
-                        address=address.address_line,
+                        address_line=address.address_line,
                         city=address.city,
                         order_total=final_subtotal,
                         shipping_fee=final_shipping,
                         coupon_discount=final_discount,
                         tax=final_tax,
-                        status='Accepted', 
+                        status='Pending', 
                         is_ordered=True
                     )
 

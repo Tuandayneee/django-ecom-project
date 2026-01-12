@@ -19,8 +19,6 @@ class Payment(BaseModel):
     payment_id = models.CharField(max_length=100, unique=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
     amount_paid = models.CharField(max_length=100)
-    
-
     status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -43,27 +41,19 @@ class Order(BaseModel):
         ('completed', 'Hoàn thành'),
         
     ]
-
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, blank=True)
     order_number = models.CharField(max_length=20, unique=True)
-    
-    
     full_name = models.CharField(max_length=50)
     phone = models.CharField(max_length=50, blank=True)
     address_line = models.TextField(blank=True)
     city = models.CharField(max_length=100, blank=True)
-
-    
     order_total = models.FloatField(default=0)  
     shipping_fee = models.FloatField(default=0) 
     coupon_discount = models.FloatField(default=0)  
-    tax = models.IntegerField(default=0)  
-    
-    
+    tax = models.IntegerField(default=0)   
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     is_ordered = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -77,14 +67,11 @@ class Order(BaseModel):
 
 class OrderProduct(BaseModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE,related_name='order_products')
-
     product = models.ForeignKey(Product, on_delete=models.SET_NULL,null=True)
     variant = models.ForeignKey(Variant, on_delete=models.SET_NULL, null=True, blank=True)   
     product_name = models.CharField(max_length=100)
     quantity = models.IntegerField()
     product_price = models.IntegerField() 
-    
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

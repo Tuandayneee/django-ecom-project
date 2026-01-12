@@ -77,6 +77,7 @@ def checkout(request):
                 return redirect('home')
                 
         except Cart.DoesNotExist:
+            messages.warning(request, "Không có giỏ hàng hoặc giỏ hàng đang trống.")
             return redirect('home')
 
     # 3. Lấy danh sách địa chỉ
@@ -94,7 +95,12 @@ def checkout(request):
         # --- Xử lý VNPay ---
         if payment_method == 'vnpay':
             request.session['shipping_address_uid'] = selected_address_uid
-            # VNPay sẽ tự đọc session 'direct_buy_item' ở view vnpay_payment để biết thanh toán bao nhiêu
+            # Đặt flag để VNPay biết đang thanh toán từ mua ngay hay giỏ hàng
+            if direct_buy_data:
+                request.session['is_buy_now'] = True
+            else:
+                request.session['is_buy_now'] = False
+            request.session.modified = True
             return redirect('orders:vnpay_payment') 
 
         # --- Xử lý COD (Thanh toán khi nhận hàng) ---

@@ -61,13 +61,13 @@ class Address(BaseModel):
     full_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     address_line = models.TextField() 
+    
     city = models.CharField(max_length=100)
     is_default = models.BooleanField(default=False) 
     province_id = models.IntegerField(null=True, blank=True)
     district_id = models.IntegerField(null=True, blank=True)
     ward_code = models.CharField(max_length=50, null=True, blank=True)
     def save(self, *args, **kwargs):
-        # Logic: Nếu địa chỉ này là mặc định, các địa chỉ khác của user phải bỏ mặc định đi
         if self.is_default:
             Address.objects.filter(user=self.user).update(is_default=False)
         super(Address, self).save(*args, **kwargs)

@@ -28,25 +28,25 @@
                         <label class="form-label small fw-bold text-uppercase text-muted mb-2">Khu vực nhận hàng</label>
                         <div class="row g-2">
                             <div class="col-md-4">
-                                <select id="province" class="form-select" required>
+                                <select name="province_id" id="province" class="form-select" required>
                                     <option value="">-- Tỉnh/Thành --</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <select id="district" class="form-select" disabled required>
+                                <select name="district_id" id="district" class="form-select" disabled required>
                                     <option value="">-- Quận/Huyện --</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <select id="ward" class="form-select" disabled required>
+                                <select name="ward_code" id="ward" class="form-select" disabled required>
                                     <option value="">-- Phường/Xã --</option>
                                 </select>
                             </div>
                         </div>
                         
                         <input type="hidden" name="city" id="city_name"> 
-                        <input type="hidden" name="state" id="district_name">
-                        <input type="hidden" name="ward_name" id="ward_name">
+                        <input type="hidden" name="district" id="district_name"> 
+                        <input type="hidden" name="ward" id="ward_name">
                         <input type="hidden" name="country" value="Vietnam"> 
                     </div>
 

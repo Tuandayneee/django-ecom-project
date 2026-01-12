@@ -102,13 +102,10 @@ class Product(BaseModel):
         return self.product_name
 
 class Variant(BaseModel):
-    
-    
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     color = models.ForeignKey(ColorVariant, on_delete=models.SET_NULL, null=True, blank=True)
     size = models.ForeignKey(SizeVariant, on_delete=models.SET_NULL, null=True, blank=True)
-    stock = models.IntegerField(default=0)
-    
+    stock = models.IntegerField(default=0)    
     sku = models.CharField(max_length=100, unique=True,blank=True)
     original_price = models.IntegerField(default=0)
     price = models.IntegerField(default=0)

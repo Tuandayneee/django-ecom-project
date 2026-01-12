@@ -4,7 +4,7 @@ Một nền tảng thương mại điện tử hiện đại được xây dựn
 
 ---
 
-## 📋 Mục Lục
+## Mục Lục
 
 - [Tổng Quan](#tổng-quan)
 - [Các Tính Năng Chính](#các-tính-năng-chính)
@@ -92,7 +92,7 @@ Dự án này là một ứng dụng web thương mại điện tử hoàn chỉ
 
 ---
 
-## 💻 Yêu Cầu Hệ Thống
+## Yêu Cầu Hệ Thống
 
 - **Python**: 3.9+
 - **Django**: 5.2.7
@@ -104,7 +104,7 @@ Dự án này là một ứng dụng web thương mại điện tử hoàn chỉ
 
 ---
 
-## 🚀 Cài Đặt & Thiết Lập
+## Cài Đặt & Thiết Lập
 
 ### 1. Clone Repository
 
@@ -230,7 +230,7 @@ Truy cập:
 
 ---
 
-## 📁 Cấu Trúc Dự Án
+## Cấu Trúc Dự Án
 
 ```
 ecom/
@@ -325,7 +325,7 @@ ecom/
 
 ---
 
-## 🔧 Hướng Dẫn Sử Dụng
+## Hướng Dẫn Sử Dụng
 
 ### Cho Khách Hàng
 
@@ -600,7 +600,7 @@ python manage.py migrate
 
 ---
 
-## 💳 Cấu Hình Thanh Toán VNPay
+## Cấu Hình Thanh Toán VNPay
 
 ### 1. Đăng Ký Tài Khoản VNPay
 
@@ -663,7 +663,7 @@ OTP: 123456 (bất kỳ 6 số)
 
 ---
 
-## 🔌 API & Serializers
+## API & Serializers
 
 ### API Endpoints
 
@@ -711,7 +711,7 @@ class VariantSerializer(serializers.ModelSerializer):
 
 ---
 
-## 📌 Những Điều Cần Lưu Ý
+## Những Điều Cần Lưu Ý
 
 ### 1. **UUID Primary Keys**
 
@@ -792,7 +792,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 ---
 
-## 🐛 Khắc Phục Sự Cố
+## Khắc Phục Sự Cố
 
 ### Lỗi: "ModuleNotFoundError: No module named 'django'"
 
@@ -874,7 +874,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 ---
 
-## 📚 Tài Liệu Tham Khảo
+## Tài Liệu Tham Khảo
 
 - **Django Documentation**: https://docs.djangoproject.com/en/5.2/
 - **VNPay Integration**: https://vnpayment.vn/
@@ -883,7 +883,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 ---
 
-## 📝 Logs & Debugging
+## Logs & Debugging
 
 ### Enable Django Debug Toolbar
 
@@ -923,7 +923,7 @@ logger.error('Error message')
 
 ---
 
-## 🤝 Đóng Góp & Hỗ Trợ
+## Đóng Góp & Hỗ Trợ
 
 Nếu gặp vấn đề:
 
@@ -934,13 +934,13 @@ Nếu gặp vấn đề:
 
 ---
 
-## 📄 License
+## License
 
 Dự án này được phát triển cho mục đích học tập. Vui lòng tuân thủ các yêu cầu pháp lý cục bộ khi deploy.
 
 ---
 
-## 👨‍💻 Thông Tin Dự Án
+## Thông Tin Dự Án
 
 - **Phiên bản Django**: 5.2.7
 - **Python**: 3.9+

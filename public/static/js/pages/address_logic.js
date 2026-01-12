@@ -1,119 +1,94 @@
-// public/static/js/pages/address.js
-
 document.addEventListener("DOMContentLoaded", function () {
-  const API_URL = "https://provinces.open-api.vn/api/";
+  // 1. Dùng API esgoo.net (Ổn định hơn open-api)
+  const PROVINCE_API = "https://esgoo.net/api-tinhthanh/1/0.htm";
+  const DISTRICT_API = "https://esgoo.net/api-tinhthanh/2/";
+  const WARD_API = "https://esgoo.net/api-tinhthanh/3/";
 
   const provinceSelect = document.getElementById("province");
   const districtSelect = document.getElementById("district");
   const wardSelect = document.getElementById("ward");
 
+  // Các ô Input Ẩn (Lưu tên để gửi về Django)
   const cityNameInput = document.getElementById("city_name");
   const districtNameInput = document.getElementById("district_name");
-  const wardNameInput = document.getElementById("ward_name"); // Đảm bảo bạn có dòng này
+  const wardNameInput = document.getElementById("ward_name");
 
-  const callAPI = async (endpoint) => {
+  // Hàm gọi API
+  async function fetchLocation(url) {
     try {
-      const response = await axios.get(endpoint);
-      return response.data;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.error === 0) return data.data;
+      return [];
     } catch (error) {
-      console.error("Lỗi API địa chỉ:", error);
+      console.error("Lỗi API:", error);
       return [];
     }
-  };
-
-  const renderOption = (array, selector, type) => {
-    let row = `<option value="">-- Chọn ${type} --</option>`;
-    array.forEach((element) => {
-      row += `<option value="${element.code}" data-name="${element.name}">${element.name}</option>`;
-    });
-    document.querySelector(selector).innerHTML = row;
-  };
-
-  const loadProvinces = async () => {
-    const data = await callAPI(API_URL + "?depth=1");
-    renderOption(data, "#province", "Tỉnh/Thành");
-  };
-  loadProvinces();
-
-  // 3. Sự kiện chọn Tỉnh -> Load Huyện
-  if (provinceSelect) {
-    provinceSelect.addEventListener("change", async function () {
-      districtSelect.disabled = true;
-      wardSelect.disabled = true;
-      districtSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
-      wardSelect.innerHTML = '<option value="">-- Phường/Xã --</option>';
-
-      const provinceCode = this.value;
-      if (provinceCode) {
-        const data = await callAPI(API_URL + "p/" + provinceCode + "?depth=2");
-        renderOption(data.districts, "#district", "Quận/Huyện");
-        districtSelect.disabled = false;
-
-        const selectedOption = this.options[this.selectedIndex];
-        if (cityNameInput)
-          cityNameInput.value = selectedOption.getAttribute("data-name");
-      } else {
-        if (cityNameInput) cityNameInput.value = "";
-      }
-    });
   }
 
-  // 4. Sự kiện chọn Huyện -> Load Xã
-  if (districtSelect) {
-    districtSelect.addEventListener("change", async function () {
-      wardSelect.disabled = true;
-      wardSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
-
-      const districtCode = this.value;
-      if (districtCode) {
-        const data = await callAPI(API_URL + "d/" + districtCode + "?depth=2");
-        renderOption(data.wards, "#ward", "Phường/Xã");
-        wardSelect.disabled = false;
-
-        const selectedOption = this.options[this.selectedIndex];
-        if (districtNameInput)
-          districtNameInput.value = selectedOption.getAttribute("data-name");
-      } else {
-        if (districtNameInput) districtNameInput.value = "";
-      }
+  // Hàm render Option
+  function renderOptions(array, selectElement, defaultText) {
+    let html = `<option value="">-- ${defaultText} --</option>`;
+    array.forEach((item) => {
+      // Lưu tên vào data-name để dễ lấy
+      html += `<option value="${item.id}" data-name="${item.full_name}">${item.full_name}</option>`;
     });
+    selectElement.innerHTML = html;
+    selectElement.disabled = false;
   }
 
-  // 5. Sự kiện chọn Xã -> Lưu kết quả
-  if (wardSelect) {
-    wardSelect.addEventListener("change", function () {
-      const wardCode = this.value;
-      const selectedOption = this.options[this.selectedIndex];
+  // 2. Load Tỉnh khi vào trang
+  fetchLocation(PROVINCE_API).then((data) =>
+    renderOptions(data, provinceSelect, "Tỉnh/Thành")
+  );
 
-      if (wardCode) {
-        if (wardNameInput) {
-          wardNameInput.value = selectedOption.getAttribute("data-name");
-        }
-        printResult();
-      } else {
-        if (wardNameInput) wardNameInput.value = "";
-      }
-    });
-  }
+  // 3. Sự kiện chọn Tỉnh
+  provinceSelect.addEventListener("change", function () {
+    districtSelect.innerHTML = '<option value="">-- Quận/Huyện --</option>';
+    wardSelect.innerHTML = '<option value="">-- Phường/Xã --</option>';
+    districtSelect.disabled = true;
+    wardSelect.disabled = true;
 
-  const printResult = () => {
-    if (provinceSelect.value && districtSelect.value && wardSelect.value) {
-      const p =
-        provinceSelect.options[provinceSelect.selectedIndex].getAttribute(
-          "data-name"
-        );
-      const d =
-        districtSelect.options[districtSelect.selectedIndex].getAttribute(
-          "data-name"
-        );
-      const w =
-        wardSelect.options[wardSelect.selectedIndex].getAttribute("data-name");
+    // LẤY TÊN TỈNH -> Gán vào Input Ẩn
+    const selectedOption = this.options[this.selectedIndex];
+    const name = selectedOption.getAttribute("data-name");
+    if (cityNameInput) cityNameInput.value = name || "";
 
-      const resultString = `${w}, ${d}, ${p}`;
-      console.log("Địa chỉ đầy đủ:", resultString);
+    // Reset huyện/xã
+    if (districtNameInput) districtNameInput.value = "";
+    if (wardNameInput) wardNameInput.value = "";
 
-      const resultInput = document.getElementById("result");
-      if (resultInput) resultInput.value = resultString;
+    if (this.value) {
+      fetchLocation(`${DISTRICT_API}${this.value}.htm`).then((data) =>
+        renderOptions(data, districtSelect, "Quận/Huyện")
+      );
     }
-  };
+  });
+
+  // 4. Sự kiện chọn Huyện
+  districtSelect.addEventListener("change", function () {
+    wardSelect.innerHTML = '<option value="">-- Phường/Xã --</option>';
+    wardSelect.disabled = true;
+
+    // LẤY TÊN HUYỆN -> Gán vào Input Ẩn
+    const selectedOption = this.options[this.selectedIndex];
+    const name = selectedOption.getAttribute("data-name");
+    if (districtNameInput) districtNameInput.value = name || "";
+
+    if (wardNameInput) wardNameInput.value = "";
+
+    if (this.value) {
+      fetchLocation(`${WARD_API}${this.value}.htm`).then((data) =>
+        renderOptions(data, wardSelect, "Phường/Xã")
+      );
+    }
+  });
+
+  // 5. Sự kiện chọn Xã (QUAN TRỌNG)
+  wardSelect.addEventListener("change", function () {
+    // LẤY TÊN XÃ -> Gán vào Input Ẩn
+    const selectedOption = this.options[this.selectedIndex];
+    const name = selectedOption.getAttribute("data-name");
+    if (wardNameInput) wardNameInput.value = name || "";
+  });
 });

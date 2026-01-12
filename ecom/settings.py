@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-iu22skm5)q_#scswfna8gl8k3jcl_mj6@%@g!b+799j$v8!d1v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -191,7 +191,7 @@ VNPAY_TMN_CODE = 'SIXDZGUD'
 VNPAY_HASH_SECRET_KEY = 'B159DXK3140FGOFHWGYJ29B8J77IVVOZ'
 
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
-VNPAY_RETURN_URL = 'http://127.0.0.1:8000/payment_return/'
+VNPAY_RETURN_URL = 'http://127.0.0.1:8000/orders/payment/return/'
 
 
 WAREHOUSE_COORDS = (20.8904460, 105.7951300)
