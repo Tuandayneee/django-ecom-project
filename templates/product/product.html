@@ -1,0 +1,311 @@
+{% extends 'base/base.html' %} 
+{% load static %}
+{% load humanize %} 
+
+{% block title %}{{ product.product_name }} - Urban Vibe{% endblock %}
+
+{% block start %}
+
+
+
+<div class="product-page-wrapper">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="#">{{ product.category.category_name }}</a></li>
+                <li class="breadcrumb-item active">{{ product.product_name }}</li>
+            </ol>
+        </nav>
+
+        <div class="row g-5">
+            <div class="col-lg-7">
+                <div class="main-img-container mb-3">
+                    <span class="badge bg-danger position-absolute top-0 start-0 m-3 py-2 px-3 rounded-0 z-2 text-uppercase fw-bold" style="letter-spacing:1px; font-size:0.75rem;">Hot Sale</span>
+                    
+                    {% if product.product_images.first %}
+                        <img id="mainImage" src="{{ product.product_images.first.image.url }}" alt="{{ product.product_name }}">
+                    {% else %}
+                        <img src="https://via.placeholder.com/800x1000.png?text=Urban+Vibe" alt="No image">
+                    {% endif %}
+                </div>
+
+                <div class="thumb-scroll">
+                    {% for img in product.product_images.all %}
+                        {% with color_id=img.variant.color.uid|default:"" %}
+                        <div class="thumb-item {% if forloop.first %}active-thumb{% endif %}" 
+                             onclick="changeImage(this, '{{ img.image.url }}', '{{ color_id }}')">
+                            <img src="{{ img.image.url }}" alt="Thumb">
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="product-info-sticky">
+                    <h1 class="product-title">{{ product.product_name }}</h1>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="text-warning small me-2">
+                             {% for i in "12345" %}
+                                {% if avg_rating >= forloop.counter %} <i class="fa fa-star"></i>
+                                {% elif avg_rating >= forloop.counter|add:"-0.5" %} <i class="fa fa-star-half-alt"></i>
+                                {% else %} <i class="fa fa-star text-muted" style="opacity: 0.3;"></i> {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-muted small" style="text-decoration: underline; cursor: pointer;" onclick="scrollToReview()">{{ product.reviews.count }} Đánh giá</span>
+                    </div>
+
+                    <div class="mb-4 d-flex align-items-center">
+                        <span class="product-price fw-bold text-dark" id="productPrice" style="font-size: 1.5rem;">
+                            {{ default_price|intcomma }} đ
+                        </span>
+                        
+                        <span id="originalPriceDisplay" class="text-muted text-decoration-line-through ms-3" style="font-size: 1.1rem;" 
+                            {% if not product.original_price or product.original_price <= default_price %}style="display: none;"{% endif %}>
+                            {% if product.original_price %}{{ product.original_price|intcomma }} đ{% endif %}
+                        </span>
+
+                        <span id="saleBadge" class="badge bg-dark text-white ms-3 px-3 py-2 rounded-1 text-uppercase fw-bold shadow-sm" 
+                            style="font-size: 0.85rem; letter-spacing: 1px; vertical-align: middle;"
+                            {% if product.get_percentage_off == 0 %}style="display: none;"{% endif %}>
+                            SALE <span id="saleBadgeText" class="ms-1">-{{ product.get_percentage_off }}%</span>
+                        </span>
+                    </div>
+
+                    <p class="text-muted mb-4" style="line-height: 1.6;">
+                        {{ product.product_description|truncatewords:30 }}
+                    </p>
+
+                    <script>
+                        const variantsMap = {{ variants_map_json|safe }};
+                        const default_price = {{ default_price }};
+                    </script>
+
+                    {% if available_colors %}
+                    <div class="mb-4">
+                        <span class="variant-label">Màu sắc: <span id="selectedColorName" class="fw-normal text-muted">Chọn màu</span></span>
+                        <div class="d-flex flex-wrap">
+                            {% for color in available_colors %}
+                            <input type="radio" class="btn-check variant-selector color-radio" name="color" id="color_{{ color.uid }}" value="{{ color.uid }}">
+                            <label class="color-swatch" for="color_{{ color.uid }}" 
+                                   style="background-color: {{ color.color_code|default:'#eee' }};"
+                                   data-bs-toggle="tooltip" title="{{ color.color_name }}"
+                                   onclick="document.getElementById('selectedColorName').innerText = '{{ color.color_name }}'">
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if available_sizes %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between">
+                            <span class="variant-label">Kích thước</span>
+                            <a href="#" class="small text-decoration-underline text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#sizeGuideModal">Hướng dẫn chọn size</a>
+                        </div>
+                        <div class="d-flex flex-wrap">
+                            {% for size in available_sizes %}
+                            <input type="radio" class="btn-check variant-selector size-radio" name="size" id="size_{{ size.uid }}" value="{{ size.uid }}">
+                            <label class="size-btn" for="size_{{ size.uid }}">
+                                {{ size.size_name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <span class="variant-label">Số lượng</span>
+                        <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center border rounded px-2" style="height: 40px;">
+                                <button class="qty-btn border-0" onclick="changeQty(-1)"><i class="fa fa-minus small"></i></button>
+                                <input type="text" id="quantityInput" class="qty-input bg-transparent" value="1" readonly>
+                                <button class="qty-btn border-0" onclick="changeQty(1)"><i class="fa fa-plus small"></i></button>
+                            </div>
+                            <span class="ms-3 small text-muted" id="productStock"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <form method="POST" action="{% url 'add_to_cart' product.slug %}" id="addToCartForm">{% csrf_token %}<input type="hidden" name="variant" id="addToCartVariantInput" value=""><input type="hidden" name="quantity" id="addToCartQtyInput" value="1"><button type="submit" id="addToCartBtn" class="btn btn-outline w-100 btn-action disabled" disabled>Thêm giỏ hàng</button></form>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" onclick="buyNow()" id="buyNowBtn" class="btn btn-black w-100 btn-action">Mua Ngay</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion mt-5" id="productAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesc">
+                                    CHI TIẾT SẢN PHẨM
+                                </button>
+                            </h2>
+                            <div id="collapseDesc" class="accordion-collapse collapse show" data-bs-parent="#productAccordion">
+                                <div class="accordion-body">
+                                    {{ product.product_description|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseShip">
+                                    VẬN CHUYỂN & ĐỔI TRẢ
+                                </button>
+                            </h2>
+                            <div id="collapseShip" class="accordion-collapse collapse" data-bs-parent="#productAccordion">
+                                <div class="accordion-body">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2"><i class="fa fa-check text-success me-2"></i> Freeship đơn hàng > 1500k.</li>
+                                        <li class="mb-2"><i class="fa fa-check text-success me-2"></i> Đổi trả trong 7 ngày (giữ nguyên tag).</li>
+                                        <li><i class="fa fa-check text-success me-2"></i> Kiểm tra hàng trước khi thanh toán.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> </div>
+        </div>
+    </div>
+
+    <div class="review-section" id="reviewSection">
+        <div class="container">
+            <h3 class="fw-bold mb-4 text-uppercase">Đánh giá từ khách hàng</h3>
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="bg-white p-4 rounded text-center border h-100 d-flex flex-column justify-content-center">
+    
+                        <h1 class="display-3 fw-bold mb-0">{{ product.averageReview|floatformat:1 }}</h1>
+                        
+                        <div class="text-warning fs-5 mb-2">
+                            {% with avg=product.averageReview %}
+                                {% for i in "12345" %}
+                                    {% if avg >= forloop.counter %}
+                                        <i class="fa fa-star"></i> {% elif avg >= forloop.counter|add:"-0.5" %}
+                                        <i class="fa fa-star-half-alt"></i> {% else %}
+                                        <i class="fa fa-star text-muted" style="opacity: 0.3"></i> {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                        </div>
+
+                        <p class="text-muted mb-0">Dựa trên {{ product.reviews.count }} đánh giá</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    
+                    <div class="filter-bar mb-4 p-2 border rounded bg-light d-flex flex-wrap gap-2 align-items-center">
+                        <span class="fw-bold me-2 ps-2">Lọc theo:</span>
+                        <button class="btn btn-sm btn-outline-dark active filter-btn" onclick="filterReviews('all', this)">Tất cả</button>
+                        <button class="btn btn-sm btn-outline-dark filter-btn" onclick="filterReviews(5, this)">5 Sao</button>
+                        <button class="btn btn-sm btn-outline-dark filter-btn" onclick="filterReviews(4, this)">4 Sao</button>
+                        <button class="btn btn-sm btn-outline-dark filter-btn" onclick="filterReviews(3, this)">3 Sao</button>
+                        <button class="btn btn-sm btn-outline-dark filter-btn" onclick="filterReviews(2, this)">2 Sao</button>
+                        <button class="btn btn-sm btn-outline-dark filter-btn" onclick="filterReviews(1, this)">1 Sao</button>
+                    </div>
+
+                    <div class="review-list">
+                        {% for review in reviews %}
+                        <div class="review-card mb-3 pb-3 border-bottom review-item d-none" 
+                            data-rating="{{ review.rating }}">
+                            
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <div class="user-avatar-char bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight: bold;">
+                                        {{ review.user.username|slice:":1"|upper }}
+                                    </div>
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <h6 class="fw-bold mb-0 text-dark">{{ review.user.username }}</h6>
+                                        <small class="text-muted">{{ review.created_at|date:"d/m/Y" }}</small>
+                                    </div>
+
+                                    <div class="text-warning small mb-2">
+                                        {% for i in "12345" %}
+                                            {% if review.rating >= forloop.counter %} <i class="fa fa-star"></i>
+                                            {% else %} <i class="fa fa-star text-muted" style="opacity: 0.3"></i> {% endif %}
+                                        {% endfor %}
+                                    </div>
+
+                                    <h6 class="fw-bold mb-1 text-dark">
+                                        {{ review.subject }}
+                                    </h6>
+
+                                    <p class="text-muted mb-0">
+                                        {{ review.review }} 
+                                        </p>
+                                    </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                            <div class="text-center py-4 text-muted bg-white border rounded">
+                                <p class="mb-0">Sản phẩm này chưa có đánh giá nào.</p>
+                            </div>
+                        {% endfor %}
+
+                        <div id="noReviewMsg" class="text-center py-4 text-muted d-none">
+                            Không có đánh giá nào phù hợp.
+                        </div>
+                    </div>
+
+                    
+                    
+                    {% if reviews.count > 3 %}
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline-dark rounded-0 px-5 d-none" 
+                                id="loadMoreReviewsBtn" 
+                                onclick="toggleReviews()"> Xem tất cả đánh giá
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="modal fade" id="sizeGuideModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg"> 
+    <div class="modal-content rounded-0 border-0">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold text-uppercase">Bảng Size Chuẩn</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+         <img src="{% static 'images/size/size.jpg' %}" class="img-fluid" alt="Size Chart">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+    window.ProductConfig = {
+        
+        variantsMap: {{ variants_map_json|safe }},
+        defaultPrice: {{ default_price|default:0 }},
+        
+        
+        csrfToken: "{{ csrf_token }}",
+        
+        
+        urls: {
+            addToCart: "{% url 'add_to_cart' product.slug %}",
+            buyNow: "{% url 'orders:buy_now' %}",
+            checkout: "{% url 'orders:checkout' %}"
+        }
+    };
+</script>
+
+<script src="{% static 'js/pages/product.js' %}"></script>
+{% endblock %}
+
+{% endblock %}

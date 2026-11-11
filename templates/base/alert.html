@@ -1,0 +1,39 @@
+{% if messages %}
+{% load static %}
+
+<div class="custom-toast-container">
+    {% for message in messages %}
+    <div class="custom-toast" data-type="{{ message.tags }}">
+        <div class="toast-content-wrapper">
+            <div class="toast-icon">
+                {% if message.tags == 'success' %}
+                    <i class="fa-solid fa-circle-check"></i>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <i class="fa-solid fa-circle-xmark"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                {% else %}
+                    <i class="fa-solid fa-circle-info"></i>
+                {% endif %}
+            </div>
+
+            <div class="toast-message">
+                {{ message|safe }}
+            </div>
+
+            <button class="toast-close-btn" onclick="removeToast(this.closest('.custom-toast'))">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="toast-progress">
+            <div class="toast-progress-bar"></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script src="{% static 'js/pages/alert.js' %}"></script>
+    
+
+{% endif %}

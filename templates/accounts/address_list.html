@@ -1,0 +1,110 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Sổ địa chỉ - Urban Vibe{% endblock %}
+
+{% block start %}
+
+
+
+<section class="section-content padding-y bg-light" style="min-height: 85vh;">
+    <div class="container py-4">
+        <div class="row">
+            
+            <div class="col-lg-3 col-md-4 mb-4">
+                {% include "includes/user_sidebar.html" with active_tab="addresses" %}
+            </div>
+            
+            <main class="col-lg-9 col-md-8">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 class="fw-bold text-dark m-0">Sổ địa chỉ</h3>
+                        <p class="text-muted small m-0 mt-1">Quản lý địa chỉ giao hàng của bạn.</p>
+                    </div>
+                    <button type="button" class="btn btn-dark rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                        <i class="fa-solid fa-plus me-1"></i> Thêm địa chỉ mới
+                    </button>
+                </div>
+
+               
+
+                {% if addresses %}
+                    <div class="row g-4">
+                        {% for addr in addresses %}
+                        <div class="col-md-6">
+                            <div class="address-card h-100 p-4 {% if addr.is_default %}is-default{% endif %}">
+                                
+                                <div class="mb-3">
+                                    <h6 class="fw-bold text-dark text-uppercase mb-3 d-flex align-items-center">
+                                        {{ addr.full_name }}
+                                        {% if addr.is_default %}
+                                            <i class="fa-solid fa-circle-check text-success ms-2 fs-6" title="Đang sử dụng"></i>
+                                        {% endif %}
+                                    </h6>
+                                    
+                                    <div class="info-row">
+                                        <div class="info-icon"><i class="fa-solid fa-phone"></i></div>
+                                        <div class="fw-bold text-dark">{{ addr.phone }}</div>
+                                    </div>
+                                    
+                                    <div class="info-row">
+                                        <div class="info-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                                        <div style="line-height: 1.4;">{{ addr.address_line }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="card-actions">
+                                    <div>
+                                        {% if not addr.is_default %}
+                                            <a href="{% url 'set_default_address' addr.uid %}" class="btn-action text-primary me-2">
+                                                <i class="fa-regular fa-star me-1"></i> Đặt mặc định
+                                            </a>
+                                        {% else %}
+                                            <span class="text-success small fw-bold"><i class="fa-solid fa-check"></i> Mặc định</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div>
+                                        <a href="{% url 'edit_address' addr.uid %}" class="btn-action me-3" title="Sửa">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+                                        <form method="POST" action="{% url 'delete_address' addr.uid %}" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa địa chỉ này?')">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-action delete border-0 bg-transparent p-0" title="Xóa">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                {% else %}
+                    <div class="empty-address-box">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-map-location text-muted opacity-25" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="fw-bold">Chưa có địa chỉ nào</h5>
+                        <p class="text-muted mb-4">Hãy thêm địa chỉ để quá trình thanh toán nhanh chóng hơn.</p>
+                        <button type="button" class="btn btn-outline-dark rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                            Thêm địa chỉ ngay
+                        </button>
+                    </div>
+                {% endif %}
+
+            </main>
+        </div>
+    </div>
+</section>
+
+{% include "accounts/address_form.html" with next_url="address_list" %}
+{% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    
+    <script src="{% static 'js/pages/address_logic.js' %}"></script>
+{% endblock %}
+{% endblock %}

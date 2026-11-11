@@ -1,0 +1,59 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}{{ title|default:"Cập nhật địa chỉ" }} - Urban Vibe{% endblock %}
+
+{% block start %}
+<section class="section-content padding-y bg-light" style="min-height: 85vh;">
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-lg-3 col-md-4 mb-4">
+                {% include "includes/user_sidebar.html" with active_tab="addresses" %}
+            </div>
+            <main class="col-lg-9 col-md-8">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="fw-bold text-dark m-0">{{ title|default:"Địa chỉ giao hàng" }}</h4>
+                            <a href="{% url 'address_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                <i class="fa fa-arrow-left me-1"></i> Quay lại
+                            </a>
+                        </div>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Họ và tên</label>
+                                    {{ form.full_name }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Số điện thoại</label>
+                                    {{ form.phone }}
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Tỉnh / Thành phố</label>
+                                    {{ form.city }}
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Địa chỉ cụ thể</label>
+                                    {{ form.address_line }}
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-check mt-2">
+                                        {{ form.is_default }}
+                                        <label class="form-check-label">Đặt làm địa chỉ mặc định</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 d-flex gap-2">
+                                <button type="submit" class="btn btn-dark px-4 fw-bold">Lưu thay đổi</button>
+                                <a href="{% url 'address_list' %}" class="btn btn-light px-4">Hủy</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</section>
+{% endblock %}

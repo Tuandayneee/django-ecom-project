@@ -1,0 +1,164 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Tổng quan tài khoản - Urban Vibe{% endblock %}
+
+{% block start %}
+
+
+
+<section class="section-content padding-y bg-light" style="min-height: 85vh;">
+    <div class="container py-4">
+        <div class="row">
+            
+            <div class="col-lg-3 col-md-4 mb-4">
+                {% include "includes/user_sidebar.html" with active_tab="overview" %}
+            </div>
+
+            <main class="col-lg-9 col-md-8">
+                
+                <div class="d-flex justify-content-between align-items-end mb-4">
+                    <div>
+                        <h3 class="fw-bold text-dark m-0">Tổng quan</h3>
+                        <p class="text-muted small m-0 mt-1">Xin chào, {{ request.user.first_name|default:request.user.username }}! Chúc bạn một ngày tốt lành.</p>
+                    </div>
+                    <a href="{% url 'home' %}" class="btn btn-dark btn-sm rounded-pill px-3 d-none d-sm-inline-block">
+                        <i class="fa-solid fa-plus me-1"></i> Mua sắm ngay
+                    </a>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="dashboard-stat-card">
+                            <div class="stat-icon icon-blue">
+                                <i class="fa-solid fa-receipt"></i>
+                            </div>
+                            <div>
+                                <div class="stat-label">Tổng đơn hàng</div>
+                                <div class="stat-value">{{ total_orders }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="dashboard-stat-card">
+                            <div class="stat-icon icon-orange">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                            </div>
+                            <div>
+                                <div class="stat-label">Đang xử lý</div>
+                                <div class="stat-value">{{ pending_count }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="dashboard-stat-card">
+                            <div class="stat-icon icon-green">
+                                <i class="fa-solid fa-check-double"></i>
+                            </div>
+                            <div>
+                                <div class="stat-label">Hoàn thành</div>
+                                <div class="stat-value">{{ completed_count }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <div class="custom-table-wrapper h-100">
+                            <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+                                <h6 class="fw-bold m-0 text-dark">Đơn hàng gần đây</h6>
+                                <a href="{% url 'user_orders' %}" class="text-decoration-none small fw-bold text-primary">Xem tất cả</a>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table custom-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Mã đơn</th>
+                                            <th>Ngày đặt</th>
+                                            <th>Trạng thái</th>
+                                            <th class="text-end">Tổng tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in recent_orders %}
+                                        <tr onclick="window.location='{% url 'order_detail' order.order_number %}';" style="cursor: pointer;">
+                                            <td class="fw-bold text-dark">#{{ order.order_number|slice:":8" }}</td>
+                                            <td class="text-muted">{{ order.created_at|date:"d/m/Y" }}</td>
+                                            <td>
+                                                {% if order.status|lower == 'new' or order.status|lower == 'pending' %}
+                                                    <span class="status-badge status-pending">{{ order.get_status_display }}</span>
+                                                {% elif order.status|lower == 'completed' or order.status|lower == 'accepted' or order.status|lower == 'paid' %}
+                                                    <span class="status-badge status-completed">{{ order.get_status_display }}</span>
+                                                {% elif order.status|lower == 'cancelled' %}
+                                                    <span class="status-badge status-cancelled">{{ order.get_status_display }}</span>
+                                                {% else %}
+                                                    <span class="status-badge status-shipped">{{ order.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end fw-bold">{{ order.grand_total|intcomma }} đ</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center py-5">
+                                                <div class="mb-3 opacity-50"><i class="fa-solid fa-basket-shopping fa-3x"></i></div>
+                                                <p class="text-muted small">Bạn chưa có đơn hàng nào.</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="membership-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="member-rank">MEMBER</div>
+                                    <div class="member-name">{{ request.user.first_name }} {{ request.user.last_name }}</div>
+                                </div>
+                                <i class="fa-solid fa-crown fs-3 text-warning"></i>
+                            </div>
+                            <div class="mt-4 pt-3 border-top border-white border-opacity-10 d-flex justify-content-between">
+                                <small class="opacity-75">Tham gia từ</small>
+                                <small class="fw-bold">{{ request.user.date_joined|date:"M Y" }}</small>
+                            </div>
+                        </div>
+
+                        <div class="custom-table-wrapper p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold m-0 text-dark">Địa chỉ mặc định</h6>
+                                <a href="{% url 'address_list' %}" class="text-muted"><i class="fa-solid fa-pen-to-square"></i></a>
+                            </div>
+                            
+                            {% if default_address %}
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3 text-primary mt-1"><i class="fa-solid fa-location-dot"></i></div>
+                                    <div>
+                                        <p class="fw-bold mb-1 text-dark">{{ default_address.full_name }}</p>
+                                        <p class="text-muted small mb-1">{{ default_address.phone }}</p>
+                                        <p class="text-muted small mb-0" style="line-height: 1.4;">
+                                            {{ default_address.address_line }}, {{ default_address.city }}
+                                        </p>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-3">
+                                    <p class="text-muted small mb-3">Bạn chưa thiết lập địa chỉ mặc định.</p>
+                                    <a href="{% url 'address_list' %}" class="btn btn-outline-primary btn-sm rounded-pill w-100">Thiết lập ngay</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div> </main>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

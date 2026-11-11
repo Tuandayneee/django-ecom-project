@@ -1,0 +1,223 @@
+{% extends "base/base.html" %} 
+{% load static %} 
+{% load humanize %} 
+
+{% block title %}Thanh toán - Urban Vibe{% endblock %}
+
+{% block start %}
+
+
+
+<section class="checkout-wrapper pt-5">
+    <div class="container">
+        
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'cart' %}" class="text-decoration-none text-muted">Giỏ hàng</a></li>
+                <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">Thanh toán</li>
+            </ol>
+        </nav>
+
+        <form id="checkoutForm" action="{% url 'orders:checkout' %}" method="POST">
+            {% csrf_token %}
+            
+            <div class="row g-5">
+                <div class="col-lg-7">
+                    
+                    <div class="mb-5">
+                        <div class="step-header">
+                            <span class="step-number">1</span>
+                            <span>Địa chỉ nhận hàng</span>
+                        </div>
+
+                        {% if addresses %}
+                            <div class="d-flex flex-column gap-3" id="address-container">
+                                {% for addr in addresses %}
+                                <div class="position-relative">
+                                    <input class="custom-radio-input" type="radio" 
+                                           name="selected_address" 
+                                           id="addr_{{ addr.uid }}" 
+                                           value="{{ addr.uid }}" 
+                                           {% if addr.is_default %}checked{% endif %}>
+                                    
+                                    <label class="custom-radio-label" for="addr_{{ addr.uid }}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="fw-bold mb-1">{{ addr.full_name }} <span class="fw-normal text-muted ms-2">| {{ addr.phone }}</span></h6>
+                                                <p class="text-muted small mb-0">{{ addr.address_line }}, {{ addr.city }}</p>
+                                            </div>
+                                            {% if addr.is_default %}
+                                            <span class="badge bg-light text-dark border">Mặc định</span>
+                                            {% endif %}
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <button type="button" class="btn btn-outline-dark btn-sm mt-3 rounded-pill px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                                <i class="fa fa-plus me-1"></i> Thêm địa chỉ mới
+                            </button>
+
+                        {% else %}
+                            <div class="text-center p-5 border rounded-3 bg-white">
+                                <i class="fa-solid fa-map-location-dot fa-3x text-muted mb-3"></i>
+                                <h5>Bạn chưa có địa chỉ nhận hàng</h5>
+                                <p class="text-muted small">Vui lòng thêm địa chỉ để tiếp tục thanh toán.</p>
+                                <button type="button" class="btn btn-dark rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                                    Thêm địa chỉ ngay
+                                </button>
+                                <input type="hidden" id="no_address_flag" value="true">
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-5">
+                        <div class="step-header">
+                            <span class="step-number">2</span>
+                            <span>Phương thức thanh toán</span>
+                        </div>
+
+                        <div class="d-flex flex-column gap-3">
+                            <div class="position-relative">
+                                <input class="custom-radio-input" type="radio" name="payment_method" id="pay_cod" value="cod">
+                                <label class="custom-radio-label" for="pay_cod">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 text-primary fs-4"><i class="fa-solid fa-truck-fast"></i></div>
+                                        <div>
+                                            <h6 class="fw-bold mb-1">Thanh toán khi nhận hàng (COD)</h6>
+                                            <p class="text-muted small mb-0">Thanh toán tiền mặt cho shipper khi nhận được hàng.</p>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="position-relative">
+                                <input class="custom-radio-input" type="radio" name="payment_method" id="pay_vnpay" value="vnpay" checked>
+                                <label class="custom-radio-label" for="pay_vnpay">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <img src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg" class="payment-logo" alt="VNPay">
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold mb-1">Ví VNPAY / Thẻ ATM / Thẻ Quốc tế</h6>
+                                                <p class="text-muted small mb-0">Quét mã QR hoặc thanh toán qua cổng VNPAY an toàn.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="summary-card">
+                        <div class="loading-overlay" id="summaryLoading">
+                            <div class="spinner-border text-dark" role="status"></div>
+                        </div>
+
+                        <h5 class="fw-bold mb-4">Đơn hàng của bạn</h5>
+
+                        <div class="mb-4 pb-4 border-bottom">
+                            {% for item in cart_data.cart_items|slice:":3" %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="position-relative me-3">
+                                    {% if item.variant.product.product_images.first %}
+                                    <img src="{{ item.variant.product.product_images.first.image.url }}" class="rounded border" width="60" height="60" style="object-fit: cover;">
+                                    {% else %}
+                                    <img src="https://via.placeholder.com/60" class="rounded border" width="60">
+                                    {% endif %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary" style="font-size: 0.7rem;">
+                                        {{ item.quantity }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 small fw-bold text-truncate" style="max-width: 200px;">{{ item.variant.product.product_name }}</h6>
+                                    <small class="text-muted">
+                                        {% if item.variant.size %}{{ item.variant.size.size_name }}{% endif %}
+                                        {% if item.variant.color %}/ {{ item.variant.color.color_name }}{% endif %}
+                                    </small>
+                                </div>
+                                <div class="ms-auto fw-bold small">
+                                    {{ item.get_product_price|intcomma }} đ
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            {% if cart_data.cart_items.count > 3 %}
+                            <div class="text-center mt-2">
+                                <small class="text-muted">Và {{ cart_data.cart_items.count|add:"-3" }} sản phẩm khác...</small>
+                                <a href="{% url 'cart' %}" class="small fw-bold text-dark text-decoration-none">Xem chi tiết</a>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2 small text-muted">
+                            <span>Tạm tính</span>
+                            <span>{{ cart_data.subtotal|intcomma }} đ</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2 small text-muted">
+                            <span>Phí vận chuyển</span>
+                            <span id="shipping-fee-display">
+                                {% if cart_data.shipping_fee > 0 %}
+                                    + {{ cart_data.shipping_fee|intcomma }} đ
+                                {% else %}
+                                    <span class="text-success">Miễn phí</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        {% if cart_data.shipping_fee > 0 %}
+                        <div class="small text-muted mb-3" style="color: #d4a373;">
+                            <i class="fas fa-info-circle"></i> Mua thêm {{ remaining_for_free_shipping|intcomma }} đ để được miễn phí vận chuyển
+                        </div>
+                        {% endif %}
+
+                        {% if cart_data.discount > 0 %}
+                        <div class="d-flex justify-content-between mb-2 small text-success">
+                            <span>Giảm giá (Coupon)</span>
+                            <span>- {{ cart_data.discount|intcomma }} đ</span>
+                        </div>
+                        {% endif %}
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-5">Tổng cộng</span>
+                            <span class="fw-bold fs-4 text-primary" id="total-display">{{ cart_data.total|intcomma }} đ</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-dark w-100 py-3 fw-bold text-uppercase rounded-3" {% if not addresses %}disabled{% endif %}>
+                            Đặt hàng ngay
+                        </button>
+
+                        <div class="mt-3 text-center small text-muted">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Thông tin thanh toán được bảo mật an toàn.
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+    window.CheckoutConfig = {
+        
+        csrfToken: "{{ csrf_token }}",
+        
+        
+        urls: {
+            updateShipping: "{% url 'orders:update_shipping_fee' %}"
+        }
+    };
+</script>
+<script src="{% static 'js/pages/checkout.js' %}"></script>
+<script src="{% static 'js/pages/address_logic.js' %}"></script>
+{% include "accounts/address_form.html" with next_url="orders:checkout" %}
+
+{% endblock %}
