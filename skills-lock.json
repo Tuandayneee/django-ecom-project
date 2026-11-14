@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "django": {
+      "source": "microsoft/debugpy",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/django/SKILL.md",
+      "computedHash": "052861c35de1de619ebe1b86ee6f6ebc64df6c7a2e270a03b7c43f96f7bf9758"
+    }
+  }
+}

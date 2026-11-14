@@ -2,6 +2,8 @@
 
 Ứng dụng web thương mại điện tử xây dựng bằng **Django 5.2**, **Django REST Framework** và **MySQL / SQLite**, hỗ trợ quản lý sản phẩm theo biến thể, giỏ hàng, mã giảm giá, thanh toán COD / VNPay và quản lý đơn hàng.
 
+> 📺 **Demo / Video giới thiệu dự án:** [Xem tại Google Drive](https://drive.google.com/drive/folders/1K7n4fAAzkZBcQGnRP6Hh48lktISswFSb?usp=sharing)
+
 ## Tính Năng Chính
 
 - **Sản phẩm & Biến thể (`products`)**: Danh mục, slug tự động, biến thể màu sắc/kích cỡ với SKU tự động, tồn kho, đánh giá sản phẩm theo đơn hàng.

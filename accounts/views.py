@@ -99,6 +99,12 @@ def logout_view(request):
 
 @login_required(login_url='login')
 def cart(request):
+    # Khi người dùng chủ động vào xem giỏ hàng, xóa phiên mua ngay (nếu có)
+    if 'direct_buy_item' in request.session or 'is_buy_now' in request.session:
+        request.session.pop('direct_buy_item', None)
+        request.session.pop('is_buy_now', None)
+        request.session.modified = True
+
     try:
         cart_obj = Cart.get_or_create_active(request.user)
         context = calculate_cart_total(cart_obj, user=request.user)

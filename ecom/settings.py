@@ -293,6 +293,11 @@ LOGOUT_REDIRECT_URL = '/'
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_CLIENT_ID', 'dummy-google-client-id'),
+            'secret': os.environ.get('GOOGLE_CLIENT_SECRET', 'dummy-google-client-secret'),
+            'key': '',
+        },
         'SCOPE': [
             'profile',
             'email',
@@ -303,6 +308,11 @@ SOCIALACCOUNT_PROVIDERS = {
         'OAUTH_PKCE_ENABLED': True,
     },
     'facebook': {
+        'APP': {
+            'client_id': os.environ.get('FACEBOOK_CLIENT_ID', 'dummy-facebook-client-id'),
+            'secret': os.environ.get('FACEBOOK_CLIENT_SECRET', 'dummy-facebook-client-secret'),
+            'key': '',
+        },
         'METHOD': 'oauth2',
         'SDK_URL': '//connect.facebook.net/{locale}/sdk.js',
         'SCOPE': ['email', 'public_profile'],
@@ -321,6 +331,11 @@ SOCIALACCOUNT_PROVIDERS = {
         'EXCHANGE_TOKEN': True,
     },
     'github': {
+        'APP': {
+            'client_id': os.environ.get('GITHUB_CLIENT_ID', 'dummy-github-client-id'),
+            'secret': os.environ.get('GITHUB_CLIENT_SECRET', 'dummy-github-client-secret'),
+            'key': '',
+        },
         'SCOPE': [
             'user',
             'read:user',

@@ -103,6 +103,7 @@ def checkout(request):
         'addresses': addresses,
         'free_shipping_threshold': 1000000,
         'remaining_for_free_shipping': max(0, 1000000 - cart_data['subtotal']),
+        'is_buy_now': bool(direct_buy_data),
     }
     return render(request, 'orders/checkout.html', context)
 
@@ -348,3 +349,13 @@ def remove_order(request, order_uid):
         else:
             messages.error(request, "Đơn hàng không thể hủy ở trạng thái hiện tại.")
     return redirect('user_orders')
+
+
+@login_required(login_url='login')
+def cancel_buy_now(request):
+    request.session.pop('direct_buy_item', None)
+    request.session.pop('is_buy_now', None)
+    request.session.modified = True
+    messages.info(request, "Đã hủy phiên Mua ngay. Đang hiển thị giỏ hàng của bạn.")
+    return redirect('cart')
+

@@ -13,10 +13,29 @@
         
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
+                {% if is_buy_now %}
+                <li class="breadcrumb-item"><a href="{% url 'orders:cancel_buy_now' %}" class="text-decoration-none text-muted">Hủy mua ngay &amp; Về giỏ hàng</a></li>
+                {% else %}
                 <li class="breadcrumb-item"><a href="{% url 'cart' %}" class="text-decoration-none text-muted">Giỏ hàng</a></li>
+                {% endif %}
                 <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">Thanh toán</li>
             </ol>
         </nav>
+
+        {% if is_buy_now %}
+        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4 rounded-3 p-3 shadow-sm">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-bolt fs-4 text-warning me-3"></i>
+                <div>
+                    <h6 class="fw-bold mb-0">Chế độ Mua ngay (1 sản phẩm)</h6>
+                    <small class="text-muted">Bạn đang thanh toán nhanh cho riêng sản phẩm này mà không dùng giỏ hàng.</small>
+                </div>
+            </div>
+            <a href="{% url 'orders:cancel_buy_now' %}" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
+                <i class="fa-solid fa-xmark me-1"></i> Hủy mua ngay &amp; Về giỏ hàng
+            </a>
+        </div>
+        {% endif %}
 
         <form id="checkoutForm" action="{% url 'orders:checkout' %}" method="POST">
             {% csrf_token %}
